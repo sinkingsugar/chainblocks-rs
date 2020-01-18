@@ -12,6 +12,7 @@ fn main() {
         .header("../chainblocks/include/chainblocks.h")
         .clang_arg("-I../chainblocks/deps/stb")
         .clang_arg("-DNO_BITFIELDS")
+        .derive_default(true)
         .generate()
         .expect("Unable to generate bindings");
 
