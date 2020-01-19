@@ -12,6 +12,7 @@ extern crate ctor;
 mod chainblocksc;
 
 use crate::chainblocksc::CBVar;
+use crate::chainblocksc::CBTypeInfo;
 use crate::chainblocksc::CBTypesInfo;
 use crate::chainblocksc::CBContext;
 use crate::chainblocksc::CBlock;
@@ -60,9 +61,9 @@ static Core: CBCore = {
 };
 
 #[inline(always)]
-fn length(seq: CBSeq) -> u64 {
+fn length<T>(a: *mut T) -> u64 {
     unsafe {
-        let arr = seq as *mut std::ffi::c_void;
+        let arr = a as *mut std::ffi::c_void;
         return Core
             .arrayLength
             .unwrap()
@@ -71,9 +72,9 @@ fn length(seq: CBSeq) -> u64 {
 }
 
 #[inline(always)]
-fn free(seq: CBSeq) {
+fn free<T>(a: *mut T) {
     unsafe {
-        let arr = seq as *mut std::ffi::c_void;
+        let arr = a as *mut std::ffi::c_void;
         Core
             .arrayFree
             .unwrap()
@@ -87,7 +88,6 @@ struct Seq {
 
 impl Seq {
     fn new() -> Seq {
-        println!("creating new Seq");
         return Seq{
             cseq: std::ptr::null_mut() as CBSeq
         };
@@ -101,7 +101,6 @@ impl Seq {
 impl Drop for Seq {
     fn drop(&mut self) {
         free(self.cseq);
-        println!("Seq dropped!");
     }
 }
 
@@ -138,18 +137,63 @@ impl IntoIterator for Seq {
     }
 }
 
-trait Var {
+pub trait IntoType {
+    fn into_type(self) -> CBTypeInfo;
 }
 
-trait Block {
+pub trait IntoTypes {
+    fn into_types(self) -> CBTypesInfo;
+}
+
+pub struct Types {
+    ctypes: CBTypesInfo
+}
+
+impl Types {
+    fn new() -> Types {
+        return Types{
+            ctypes: std::ptr::null_mut() as CBTypesInfo
+        };
+    }
+
+    fn length(&self) -> u64 {
+        return length(self.ctypes);
+    }
+}
+
+impl Drop for Types {
+    fn drop(&mut self) {
+        free(self.ctypes);
+    }
+}
+
+impl From<Vec<CBTypeInfo>> for Types {
+    fn from(v: Vec<CBTypeInfo>) -> Types {
+        let mut res: Types = Types::new();
+        for t in &v {
+            unsafe {
+                res.ctypes = Core.typesPush
+                    .unwrap()
+                    (res.ctypes, t);
+            }
+        }
+        return res;
+    }
+}
+
+pub trait IntoVar {
+    fn into_var(self) -> CBVar;
+}
+
+pub trait Block {
     fn name(&self) -> String;
     fn help(&self) -> String { "".to_string() }
     
     fn setup(&self) {}
     fn destroy(&self) {}
 
-    // fn inputTypes(&self) -> CBTypesInfo;
-    // fn outputTypes(&self) -> CBTypesInfo;
+    fn inputTypes(&self) -> &Types;
+    fn outputTypes(&self) -> &Types;
 
     fn setParam(&self, _index: i32, _value: &CBVar) {}
     fn getParam(&self, _index: i32) {}
@@ -198,6 +242,18 @@ unsafe extern "C" fn cblock_help<T: Block>(arg1: *mut CBlock) -> *const ::std::o
             .as_ptr();
 }
 
+unsafe extern "C" fn cblock_inputTypes<T: Block>(arg1: *mut CBlock) -> CBTypesInfo {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    let t = (*blk).block.inputTypes();
+    return t.ctypes;
+}
+
+unsafe extern "C" fn cblock_outputTypes<T: Block>(arg1: *mut CBlock) -> CBTypesInfo {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    let t = (*blk).block.outputTypes();
+    return t.ctypes;
+}
+
 unsafe extern "C" fn cblock_setup<T: Block>(arg1: *mut CBlock) {
     println!("setup");
     let blk = arg1 as *mut BlockWrapper<T>;
@@ -215,9 +271,7 @@ unsafe extern "C" fn cblock_activate<T: Block>(arg1: *mut CBlock,
                                                          arg2: *mut CBContext,
                                                          arg3: *const CBVar) -> CBVar {
     let blk = arg1 as *mut BlockWrapper<T>;
-    let ctx = arg2.as_ref();
-    let value = arg3.as_ref();
-    return (*blk).block.activate(ctx.unwrap(), value.unwrap());
+    return (*blk).block.activate(&(*arg2), &(*arg3));
 }
 
 unsafe extern "C" fn cblock_cleanup<T: Block>(arg1: *mut CBlock) {
@@ -230,6 +284,8 @@ fn create<T: Default + Block>() -> BlockWrapper<T> {
         header: CBlock{
             name: Some(cblock_name::<T>),
             help: Some(cblock_help::<T>),
+            inputTypes: Some(cblock_inputTypes::<T>),
+            outputTypes: Some(cblock_outputTypes::<T>),
             setup: Some(cblock_setup::<T>),
             destroy: Some(cblock_destroy::<T>),
             activate: Some(cblock_activate::<T>),
@@ -250,18 +306,34 @@ mod dummy_block {
     use super::BlockWrapper;
     use super::create;
     use super::Seq;
+    use super::Types;
     use crate::chainblocksc::CBVar;
+    use crate::chainblocksc::CBTypeInfo;
     use crate::chainblocksc::CBTypesInfo;
     use crate::chainblocksc::CBContext;
     use crate::chainblocksc::CBlock;
     use std::ffi::CString;
 
-    #[derive(Default)]
-    struct DummyBlock;
+    struct DummyBlock {
+        inputTypes: Types,
+        outputTypes: Types
+    }
+
+    impl Default for DummyBlock {
+        fn default() -> Self {
+            DummyBlock{
+                inputTypes: Types::from(vec![CBTypeInfo::default()]),
+                outputTypes: Types::from(vec![CBTypeInfo::default()])
+            }
+        }
+    }
+    
     type WDummyBlock = BlockWrapper<DummyBlock>;
 
     impl Block for DummyBlock {
         fn name(&self) -> String { "Dummy".to_string() }
+        fn inputTypes(&self) -> &Types { &self.inputTypes  }
+        fn outputTypes(&self) -> &Types { &self.outputTypes }
         fn activate(&self, _context: &CBContext, _input: &CBVar) -> CBVar { return CBVar::default(); }  
     }
 
