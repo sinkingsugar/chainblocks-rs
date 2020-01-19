@@ -107,7 +107,7 @@ pub trait IntoVar {
     fn into_var(self) -> CBVar;
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
 
@@ -142,10 +142,21 @@ mod dummy_block {
     type WDummyBlock = BlockWrapper<DummyBlock>;
 
     impl Block for DummyBlock {
-        fn name(&self) -> String { "Dummy".to_string() }
+        fn name(&self) -> &str { "Dummy" }
         fn inputTypes(&self) -> &Types { &self.inputTypes  }
         fn outputTypes(&self) -> &Types { &self.outputTypes }
         fn activate(&self, _context: &CBContext, _input: &CBVar) -> CBVar { return CBVar::default(); }  
+    }
+
+    #[ctor]
+    fn registerDummy() {
+        let blkname = CString::new("Dummy").expect("CString failed...");
+        unsafe {
+            Core.registerBlock
+                .unwrap()(
+                    blkname.as_ptr(),
+                    Some(cblock_construct::<DummyBlock>));
+        }
     }
 
     #[test]
@@ -156,13 +167,8 @@ mod dummy_block {
         let s = Seq::new();
         assert_eq!(s.length(), 0);
 
-        let blkname = CString::new("Dummy").expect("CString failed...");
+        let blkname = CString::new("Dummy").expect("CString failed...");        
         unsafe {
-            super::Core.registerBlock
-                .unwrap()(
-                    blkname.as_ptr(),
-                    Some(cblock_construct::<DummyBlock>));
-
             let cblk = Core.createBlock
                 .unwrap()
                 (blkname.as_ptr());

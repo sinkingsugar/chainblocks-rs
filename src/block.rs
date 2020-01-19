@@ -9,8 +9,8 @@ use crate::chainblocksc::CBlock;
 use crate::chainblocksc::CBSeq;
 
 pub trait Block {
-    fn name(&self) -> String;
-    fn help(&self) -> String { "".to_string() }
+    fn name(&self) -> &str;
+    fn help(&self) -> &str { "" }
     
     fn setup(&self) {}
     fn destroy(&self) {}
@@ -41,28 +41,24 @@ pub unsafe extern "C" fn cblock_construct<T: Default + Block>() -> *mut CBlock {
 
 unsafe extern "C" fn cblock_name<T: Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
     let blk = arg1 as *mut BlockWrapper<T>;
-    if !(*blk).name.is_some() {
-        let name = (*blk).block.name();
-        (*blk).name = Some(CString::new(name)
-                           .expect("CString::new failed"));
-    }
+    let name = (*blk).block.name();
+    (*blk).name = Some(CString::new(name)
+                       .expect("CString::new failed"));
     return (*blk).name
-            .as_ref()
-            .unwrap()
-            .as_ptr();
+        .as_ref()
+        .unwrap()
+        .as_ptr();
 }
 
 unsafe extern "C" fn cblock_help<T: Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
     let blk = arg1 as *mut BlockWrapper<T>;
-    if !(*blk).help.is_some() {
-        let help = (*blk).block.help();
-        (*blk).help = Some(CString::new(help)
-                           .expect("CString::new failed"));
-    }
+    let help = (*blk).block.help();
+    (*blk).help = Some(CString::new(help)
+                       .expect("CString::new failed"));
     return (*blk).help
-            .as_ref()
-            .unwrap()
-            .as_ptr();
+        .as_ref()
+        .unwrap()
+        .as_ptr();
 }
 
 unsafe extern "C" fn cblock_inputTypes<T: Block>(arg1: *mut CBlock) -> CBTypesInfo {
