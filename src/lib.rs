@@ -3,6 +3,7 @@
 #![allow(non_snake_case)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
+#![allow(improper_ctypes)]
 
 #[macro_use]
 
@@ -26,25 +27,36 @@ extern crate dlopen;
 use dlopen::symbor::Library;
 
 fn try_load_dlls() -> Option<Library> {
+    let macLib = Library::open("libcb.dylib").ok();
+    if macLib.is_some() {
+        return macLib;
+    }
     return None;
 }
 
 #[ctor]
 static Core: CBCore = {
-    let lib = Library::open_self()
+    let exe = Library::open_self()
         .ok()
-        .or_else(try_load_dlls)
-        .unwrap();
-    
-    let fun =
-        lib.symbol::<unsafe extern "C" fn(abi_version: u32)->CBCore>("chainblocksInterface")
         .unwrap();
 
-    let core = fun(ABI_VERSION);
-    if core.registerBlock.is_none() {
-        panic!("Failed to aquire chainblocks interface, version not compatible.");
+    let exefun = exe.symbol::<unsafe extern "C" fn(abi_version: u32)->CBCore>("chainblocksInterface").ok();
+    if exefun.is_some() {
+        let fun = exefun.unwrap();
+        let core = fun(ABI_VERSION);
+        if core.registerBlock.is_none() {
+            panic!("Failed to aquire chainblocks interface, version not compatible.");
+        }
+        core
+    } else {
+        let lib = try_load_dlls().unwrap();
+        let fun = lib.symbol::<unsafe extern "C" fn(abi_version: u32)->CBCore>("chainblocksInterface").unwrap();
+        let core = fun(ABI_VERSION);
+        if core.registerBlock.is_none() {
+            panic!("Failed to aquire chainblocks interface, version not compatible.");
+        }
+        core
     }
-    core
 };
 
 #[inline(always)]
@@ -71,6 +83,26 @@ fn free(seq: CBSeq) {
 
 struct Seq {
     cseq: CBSeq
+}
+
+impl Seq {
+    fn new() -> Seq {
+        println!("creating new Seq");
+        return Seq{
+            cseq: std::ptr::null_mut() as CBSeq
+        };
+    }
+
+    fn length(&self) -> u64 {
+        return length(self.cseq);
+    }
+}
+
+impl Drop for Seq {
+    fn drop(&mut self) {
+        free(self.cseq);
+        println!("Seq dropped!");
+    }
 }
 
 struct SeqIterator {
@@ -119,21 +151,28 @@ trait Block {
     // fn inputTypes(&self) -> CBTypesInfo;
     // fn outputTypes(&self) -> CBTypesInfo;
 
-    fn setParam(&self, index: i32, value: &CBVar) {}
-    fn getParam(&self, index: i32) {}
+    fn setParam(&self, _index: i32, _value: &CBVar) {}
+    fn getParam(&self, _index: i32) {}
 
     fn activate(&self, context: &CBContext, input: &CBVar) -> CBVar;
     fn cleanup(&self) {}
 }
 
-struct BlockWrapper<T: Default + Block> {
+struct BlockWrapper<T: Block> {
     header: CBlock,
     block: T,
     name: Option<CString>,
     help: Option<CString>
 }
 
-unsafe extern "C" fn cblock_name<T: Default + Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
+unsafe extern "C" fn cblock_construct<T: Default + Block>() -> *mut CBlock {
+    println!("construct");
+    let wrapper: Box<BlockWrapper::<T>> = Box::new(create());
+    let wptr = Box::into_raw(wrapper);
+    return wptr as *mut CBlock;
+}
+
+unsafe extern "C" fn cblock_name<T: Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
     let blk = arg1 as *mut BlockWrapper<T>;
     if !(*blk).name.is_some() {
         let name = (*blk).block.name();
@@ -146,7 +185,7 @@ unsafe extern "C" fn cblock_name<T: Default + Block>(arg1: *mut CBlock) -> *cons
             .as_ptr();
 }
 
-unsafe extern "C" fn cblock_help<T: Default + Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
+unsafe extern "C" fn cblock_help<T: Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
     let blk = arg1 as *mut BlockWrapper<T>;
     if !(*blk).help.is_some() {
         let help = (*blk).block.help();
@@ -159,17 +198,20 @@ unsafe extern "C" fn cblock_help<T: Default + Block>(arg1: *mut CBlock) -> *cons
             .as_ptr();
 }
 
-unsafe extern "C" fn cblock_setup<T: Default + Block>(arg1: *mut CBlock) {
+unsafe extern "C" fn cblock_setup<T: Block>(arg1: *mut CBlock) {
+    println!("setup");
     let blk = arg1 as *mut BlockWrapper<T>;
     (*blk).block.setup();
 }
 
-unsafe extern "C" fn cblock_destroy<T: Default + Block>(arg1: *mut CBlock) {
+unsafe extern "C" fn cblock_destroy<T: Block>(arg1: *mut CBlock) {
+    println!("destroy");
     let blk = arg1 as *mut BlockWrapper<T>;
     (*blk).block.destroy();
+    Box::from_raw(blk);
 }
 
-unsafe extern "C" fn cblock_activate<T: Default + Block>(arg1: *mut CBlock,
+unsafe extern "C" fn cblock_activate<T: Block>(arg1: *mut CBlock,
                                                          arg2: *mut CBContext,
                                                          arg3: *const CBVar) -> CBVar {
     let blk = arg1 as *mut BlockWrapper<T>;
@@ -178,7 +220,7 @@ unsafe extern "C" fn cblock_activate<T: Default + Block>(arg1: *mut CBlock,
     return (*blk).block.activate(ctx.unwrap(), value.unwrap());
 }
 
-unsafe extern "C" fn cblock_cleanup<T: Default + Block>(arg1: *mut CBlock) {
+unsafe extern "C" fn cblock_cleanup<T: Block>(arg1: *mut CBlock) {
     let blk = arg1 as *mut BlockWrapper<T>;
     (*blk).block.cleanup();
 }
@@ -202,13 +244,17 @@ fn create<T: Default + Block>() -> BlockWrapper<T> {
 
 #[cfg(test)]
 mod dummy_block {
+    // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
+    
     use super::Block;
     use super::BlockWrapper;
     use super::create;
+    use super::Seq;
     use crate::chainblocksc::CBVar;
     use crate::chainblocksc::CBTypesInfo;
     use crate::chainblocksc::CBContext;
     use crate::chainblocksc::CBlock;
+    use std::ffi::CString;
 
     #[derive(Default)]
     struct DummyBlock;
@@ -216,12 +262,29 @@ mod dummy_block {
 
     impl Block for DummyBlock {
         fn name(&self) -> String { "Dummy".to_string() }
-        fn activate(&self, context: &CBContext, input: &CBVar) -> CBVar { CBVar::default(); }
+        fn activate(&self, _context: &CBContext, _input: &CBVar) -> CBVar { return CBVar::default(); }  
     }
 
     #[test]
     fn instanciate() {
         let blk = create::<DummyBlock>();
         assert_eq!("Dummy".to_string(), blk.block.name());
+
+        let s = Seq::new();
+        assert_eq!(s.length(), 0);
+
+        let blkname = CString::new("Dummy").expect("CString failed...");
+        unsafe {
+            super::Core.registerBlock
+                .unwrap()(
+                    blkname.as_ptr(),
+                    Some(super::cblock_construct::<DummyBlock>));
+
+            let cblk = super::Core.createBlock
+                .unwrap()
+                (blkname.as_ptr());
+            (*cblk).setup.unwrap()(cblk);
+            (*cblk).destroy.unwrap()(cblk);
+        }
     }
 }
