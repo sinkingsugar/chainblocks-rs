@@ -107,6 +107,7 @@ pub trait IntoVar {
     fn into_var(self) -> CBVar;
 }
 
+// --features "dummy"
 #[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
@@ -124,6 +125,8 @@ mod dummy_block {
     use crate::chainblocksc::CBContext;
     use crate::chainblocksc::CBlock;
     use std::ffi::CString;
+    use crate::types::common_type;
+    use crate::core::log;
 
     struct DummyBlock {
         inputTypes: Types,
@@ -133,8 +136,8 @@ mod dummy_block {
     impl Default for DummyBlock {
         fn default() -> Self {
             DummyBlock{
-                inputTypes: Types::from(vec![CBTypeInfo::default()]),
-                outputTypes: Types::from(vec![CBTypeInfo::default()])
+                inputTypes: Types::from(vec![common_type::none()]),
+                outputTypes: Types::from(vec![common_type::any()])
             }
         }
     }
@@ -145,7 +148,10 @@ mod dummy_block {
         fn name(&self) -> &str { "Dummy" }
         fn inputTypes(&self) -> &Types { &self.inputTypes  }
         fn outputTypes(&self) -> &Types { &self.outputTypes }
-        fn activate(&self, _context: &CBContext, _input: &CBVar) -> CBVar { return CBVar::default(); }  
+        fn activate(&self, _context: &CBContext, _input: &CBVar) -> CBVar {
+            log("Dummy - activate: Ok!");
+            return CBVar::default();
+        }  
     }
 
     #[ctor]
@@ -175,5 +181,7 @@ mod dummy_block {
             (*cblk).setup.unwrap()(cblk);
             (*cblk).destroy.unwrap()(cblk);
         }
+
+        log("Hello chainblocks-rs");
     }
 }

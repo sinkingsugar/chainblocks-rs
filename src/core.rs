@@ -1,5 +1,6 @@
 use crate::chainblocksc::CBCore;
 use crate::chainblocksc::chainblocksInterface;
+use std::ffi::CString;
 
 const ABI_VERSION: u32 = 0x20200101;
 
@@ -38,3 +39,10 @@ pub static Core: CBCore = {
         core
     }
 };
+
+pub fn log(s: &str) {
+    let clog = CString::new(s).expect("CString failed.");
+    unsafe {
+        Core.log.unwrap()(clog.as_ptr());
+    }
+}
