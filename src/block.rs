@@ -14,27 +14,27 @@ use crate::chainblocksc::CBExposedTypesInfo;
 use crate::chainblocksc::CBParametersInfo;
 
 pub trait Block {
-    fn name(&self) -> &str;
-    fn help(&self) -> &str { "" }
+    fn name(&mut self) -> &str;
+    fn help(&mut self) -> &str { "" }
     
-    fn setup(&self) {}
-    fn destroy(&self) {}
+    fn setup(&mut self) {}
+    fn destroy(&mut self) {}
 
-    fn inputTypes(&self) -> &Types;
-    fn outputTypes(&self) -> &Types;
+    fn inputTypes(&mut self) -> &Types;
+    fn outputTypes(&mut self) -> &Types;
 
-    fn exposedVariables(&self) -> Option<&ExposedTypes> { None }
-    fn consumedVariables(&self) -> Option<&ExposedTypes> { None }
+    fn exposedVariables(&mut self) -> Option<&ExposedTypes> { None }
+    fn consumedVariables(&mut self) -> Option<&ExposedTypes> { None }
 
     fn canCompose() -> bool { false }
-    fn compose(&self, _data: &CBInstanceData) -> CBTypeInfo { CBTypeInfo::default() }
+    fn compose(&mut self, _data: &CBInstanceData) -> CBTypeInfo { CBTypeInfo::default() }
 
-    fn parameters(&self) -> Option<&Parameters> { None }
-    fn setParam(&self, _index: i32, _value: &CBVar) {}
-    fn getParam(&self, _index: i32) -> CBVar { CBVar::default() }
+    fn parameters(&mut self) -> Option<&Parameters> { None }
+    fn setParam(&mut self, _index: i32, _value: &CBVar) {}
+    fn getParam(&mut self, _index: i32) -> CBVar { CBVar::default() }
 
-    fn activate(&self, context: &CBContext, input: &CBVar) -> CBVar;
-    fn cleanup(&self) {}
+    fn activate(&mut self, context: &CBContext, input: &CBVar) -> CBVar;
+    fn cleanup(&mut self) {}
 }
 
 pub struct BlockWrapper<T: Block> {

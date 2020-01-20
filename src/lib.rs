@@ -149,10 +149,10 @@ mod dummy_block {
     type WDummyBlock = BlockWrapper<DummyBlock>;
 
     impl Block for DummyBlock {
-        fn name(&self) -> &str { "Dummy" }
-        fn inputTypes(&self) -> &Types { &self.inputTypes  }
-        fn outputTypes(&self) -> &Types { &self.outputTypes }
-        fn activate(&self, _context: &CBContext, _input: &CBVar) -> CBVar {
+        fn name(&mut self) -> &str { "Dummy" }
+        fn inputTypes(&mut self) -> &Types { &self.inputTypes  }
+        fn outputTypes(&mut self) -> &Types { &self.outputTypes }
+        fn activate(&mut self, _context: &CBContext, _input: &CBVar) -> CBVar {
             log("Dummy - activate: Ok!");
             let mut x: String = "Before...".to_string();
             log(&x);
@@ -178,7 +178,7 @@ mod dummy_block {
 
     #[test]
     fn instanciate() {
-        let blk = create::<DummyBlock>();
+        let mut blk = create::<DummyBlock>();
         assert_eq!("Dummy".to_string(), blk.block.name());
 
         let s = Seq::new();
