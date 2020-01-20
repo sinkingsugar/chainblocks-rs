@@ -9,10 +9,10 @@
 
 extern crate ctor;
 
-mod chainblocksc;
-mod core;
-mod block;
-mod types;
+pub mod chainblocksc;
+pub mod core;
+pub mod block;
+pub mod types;
 
 use std::ffi::CString;
 use std::convert::TryInto;
@@ -107,6 +107,8 @@ pub trait IntoVar {
     fn into_var(self) -> CBVar;
 }
 
+pub fn unused() {}
+
 // --features "dummy"
 #[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
@@ -127,6 +129,8 @@ mod dummy_block {
     use std::ffi::CString;
     use crate::types::common_type;
     use crate::core::log;
+    use crate::core::sleep;
+    use crate::core::init;
 
     struct DummyBlock {
         inputTypes: Types,
@@ -150,12 +154,19 @@ mod dummy_block {
         fn outputTypes(&self) -> &Types { &self.outputTypes }
         fn activate(&self, _context: &CBContext, _input: &CBVar) -> CBVar {
             log("Dummy - activate: Ok!");
+            let mut x: String = "Before...".to_string();
+            log(&x);
+            sleep(2.0);
+            x.push_str(" - and After!");
+            log(&x);
+            log("Dummy - activate: Resumed!");
             return CBVar::default();
         }  
     }
 
     #[ctor]
     fn registerDummy() {
+        init();
         let blkname = CString::new("Dummy").expect("CString failed...");
         unsafe {
             Core.registerBlock
