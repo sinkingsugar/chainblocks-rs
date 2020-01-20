@@ -3,6 +3,9 @@ use crate::core::Core;
 use crate::types::Types;
 use crate::types::ExposedTypes;
 use crate::types::Parameters;
+use crate::types::Var;
+use crate::types::Context;
+use crate::types::Type;
 use crate::chainblocksc::CBVar;
 use crate::chainblocksc::CBTypeInfo;
 use crate::chainblocksc::CBTypesInfo;
@@ -27,13 +30,13 @@ pub trait Block {
     fn consumedVariables(&mut self) -> Option<&ExposedTypes> { None }
 
     fn canCompose() -> bool { false }
-    fn compose(&mut self, _data: &CBInstanceData) -> CBTypeInfo { CBTypeInfo::default() }
+    fn compose(&mut self, _data: &CBInstanceData) -> Type { Type::default() }
 
     fn parameters(&mut self) -> Option<&Parameters> { None }
-    fn setParam(&mut self, _index: i32, _value: &CBVar) {}
-    fn getParam(&mut self, _index: i32) -> CBVar { CBVar::default() }
+    fn setParam(&mut self, _index: i32, _value: &Var) {}
+    fn getParam(&mut self, _index: i32) -> Var { Var::default() }
 
-    fn activate(&mut self, context: &CBContext, input: &CBVar) -> CBVar;
+    fn activate(&mut self, context: &Context, input: &Var) -> Var;
     fn cleanup(&mut self) {}
 }
 

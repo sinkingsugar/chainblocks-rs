@@ -8,8 +8,9 @@
 #[macro_use]
 
 extern crate ctor;
+extern crate edn;
 
-pub mod chainblocksc;
+mod chainblocksc;
 pub mod core;
 pub mod block;
 pub mod types;
@@ -19,6 +20,7 @@ use std::convert::TryInto;
 use crate::core::Core;
 use crate::block::Block;
 use crate::types::Types;
+use crate::types::Var;
 use crate::chainblocksc::CBVar;
 use crate::chainblocksc::CBTypeInfo;
 use crate::chainblocksc::CBTypesInfo;
@@ -114,6 +116,7 @@ pub fn unused() {}
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
 
+    use edn::parser::Parser;
     use crate::core::Core;
     use crate::block::cblock_construct;
     use crate::block::Block;
@@ -128,6 +131,7 @@ mod dummy_block {
     use crate::chainblocksc::CBlock;
     use std::ffi::CString;
     use crate::types::common_type;
+    use crate::types::Var;
     use crate::core::log;
     use crate::core::sleep;
     use crate::core::init;
@@ -152,7 +156,7 @@ mod dummy_block {
         fn name(&mut self) -> &str { "Dummy" }
         fn inputTypes(&mut self) -> &Types { &self.inputTypes  }
         fn outputTypes(&mut self) -> &Types { &self.outputTypes }
-        fn activate(&mut self, _context: &CBContext, _input: &CBVar) -> CBVar {
+        fn activate(&mut self, _context: &CBContext, _input: &Var) -> Var {
             log("Dummy - activate: Ok!");
             let mut x: String = "Before...".to_string();
             log(&x);
@@ -160,7 +164,7 @@ mod dummy_block {
             x.push_str(" - and After!");
             log(&x);
             log("Dummy - activate: Resumed!");
-            return CBVar::default();
+            return Var::default();
         }  
     }
 
@@ -194,5 +198,9 @@ mod dummy_block {
         }
 
         log("Hello chainblocks-rs");
+
+        let ednstr = "(schedule Root (Chain \"hello\" :Looped (Msg \"tick\")))";
+        let mut p = Parser::new(ednstr);
+        println!("{:?}", p.read());
     }
 }

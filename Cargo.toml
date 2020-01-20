@@ -12,6 +12,7 @@ edition = "2018"
 [dependencies]
 dlopen = "0.1.8"
 ctor = "0.1.2"
+edn = "0.3.0"
 
 [build-dependencies]
 bindgen = "0.51.1"

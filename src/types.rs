@@ -3,10 +3,16 @@ use crate::chainblocksc::CBTypesInfo;
 use crate::chainblocksc::CBExposedTypeInfo;
 use crate::chainblocksc::CBExposedTypesInfo;
 use crate::chainblocksc::CBParameterInfo;
+use crate::chainblocksc::CBVar;
+use crate::chainblocksc::CBContext;
 use crate::length;
 use crate::free;
 use crate::core::Core;
 use std::ffi::CString;
+
+pub type Context = CBContext;
+pub type Var = CBVar;
+pub type Type = CBTypeInfo;
 
 unsafe impl std::marker::Sync for CBTypeInfo {
 }

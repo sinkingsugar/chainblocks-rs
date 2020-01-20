@@ -57,6 +57,8 @@ pub static mut Core: CBCore = CBCore {
     schedule: None,
     tick: None,
     sleep: None,
+    getRootPath: None,
+    setRootPath: None,
 };
 
 unsafe fn initInternal() {
