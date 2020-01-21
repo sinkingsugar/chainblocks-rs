@@ -139,7 +139,7 @@ unsafe extern "C" fn cblock_parameters<T: Block>(arg1: *mut CBlock) -> CBParamet
     let blk = arg1 as *mut BlockWrapper<T>;
     let params = (*blk).block.parameters();
     if params.is_some() {
-        params.unwrap().carr
+        params.unwrap().cparams.carr
     } else {
         std::ptr::null_mut()
     }

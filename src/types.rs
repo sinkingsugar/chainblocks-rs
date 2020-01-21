@@ -3,45 +3,34 @@ use crate::chainblocksc::CBTypesInfo;
 use crate::chainblocksc::CBExposedTypeInfo;
 use crate::chainblocksc::CBExposedTypesInfo;
 use crate::chainblocksc::CBParameterInfo;
+use crate::chainblocksc::CBParametersInfo;
 use crate::chainblocksc::CBVar;
+use crate::chainblocksc::CBString;
+use crate::chainblocksc::CBVarPayload;
+use crate::chainblocksc::CBVarPayload__bindgen_ty_1;
+use crate::chainblocksc::CBVarPayload__bindgen_ty_1__bindgen_ty_2;
 use crate::chainblocksc::CBContext;
+use crate::chainblocksc::CBType_Int;
+use crate::chainblocksc::CBType_Float;
+use crate::chainblocksc::CBType_String;
 use crate::length;
 use crate::free;
 use crate::core::Core;
 use std::ffi::CString;
+use std::ffi::CStr;
+use std::convert::TryFrom;
 
 pub type Context = CBContext;
 pub type Var = CBVar;
 pub type Type = CBTypeInfo;
+pub type String = CBString;
 
 unsafe impl std::marker::Sync for CBTypeInfo {
 }
 
-// pub struct Types {
-//     pub ctypes: CBTypesInfo
-// }
-
 pub struct BaseArray<T> {
     pub carr: *mut T
 }
-
-// impl Types {
-//     fn new() -> Self {
-//         return Types{
-//             ctypes: std::ptr::null_mut() as CBTypesInfo
-//         };
-//     }
-
-//     fn length(&self) -> u64 {
-//         return length(self.ctypes);
-//     }
-// }
-
-// impl Drop for Types {
-//     fn drop(&mut self) {
-//         free(self.ctypes);
-//     }
-// }
 
 impl<T> BaseArray<T> {
     fn new() -> Self {
@@ -109,27 +98,84 @@ impl ExposedInfo {
 
 pub type ExposedTypes = BaseArray<CBExposedTypeInfo>;
 
-// impl From<Vec<ExposedInfo>> for ExposedTypes {
-//     fn from(v: Vec<ExposedInfo>) -> Self {
-//         let mut res: Types = Types::new();
-//         for t in &v {
-//             unsafe {
-//                 res.carr = Core.typesPush
-//                     .unwrap()
-//                     (res.carr, t);
-//             }
-//         }
-//         return res;
-//     }
-// }
+pub struct ParameterInfo {
+    name: CString,
+    help: CString,
+    types: Types,
+}
 
-pub type Parameters = BaseArray<CBParameterInfo>;
+impl ParameterInfo {
+    fn new(name: &str,
+           types: Types) -> Self {
+        ParameterInfo{
+            name: CString::new(name)
+                .expect("CString failed."),
+            help: CString::new("")
+                .expect("CString failed."),
+            types: types
+        }
+    }
+
+    fn new1(name: &str,
+           help: &str,
+           types: Types) -> Self {
+        ParameterInfo{
+            name: CString::new(name)
+                .expect("CString failed."),
+            help: CString::new(help)
+                .expect("CString failed."),
+            types: types
+        }
+    }
+
+    pub fn native(&self) -> CBParameterInfo {
+        CBParameterInfo{
+            name: self.name.as_ptr(),
+            help: self.help.as_ptr(),
+            valueTypes: self.types.carr
+        }
+    }
+}
+
+impl From<(&str, Types)> for ParameterInfo {
+    fn from(v: (&str, Types)) -> ParameterInfo {
+        ParameterInfo::new(v.0, v.1)
+    }
+}
+
+impl From<(&str, &str, Types)> for ParameterInfo {
+    fn from(v: (&str, &str, Types)) -> ParameterInfo {
+        ParameterInfo::new1(v.0, v.1, v.2)
+    }
+}
+
+pub struct Parameters {
+    params: Vec<ParameterInfo>,
+    pub cparams: BaseArray<CBParameterInfo>,
+}
+
+impl From<Vec<ParameterInfo>> for Parameters {
+    fn from(v: Vec<ParameterInfo>) -> Parameters {
+        let mut cparams = BaseArray::<CBParameterInfo>::new();
+        for t in &v {
+            unsafe {
+                cparams.carr = Core.paramsPush
+                    .unwrap()
+                    (cparams.carr, &t.native());
+            }
+        }
+        Parameters{
+            params: v,
+            cparams: cparams
+        }
+    }
+}
 
 pub mod common_type {
     use crate::chainblocksc::CBTypeInfo;
     use crate::chainblocksc::CBType_None;
     use crate::chainblocksc::CBType_Any;
-    use crate::chainblocksc::CBTypeInfo__bindgen_ty_1;
+    use crate::chainblocksc::CBType_String;
 
     pub fn none() -> CBTypeInfo {
         CBTypeInfo{
@@ -142,6 +188,126 @@ pub mod common_type {
         CBTypeInfo{
             basicType: CBType_Any,
             ..Default::default()
+        }
+    }
+
+    pub fn string() -> CBTypeInfo {
+        CBTypeInfo{
+            basicType: CBType_String,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<()> for Var {
+    fn from(_: ()) -> Self {
+        CBVar::default()
+    }
+}
+
+impl From<i64> for Var {
+    #[inline(always)]
+    fn from(v: i64) -> Self {
+        CBVar{
+            valueType: CBType_Int,
+            payload: CBVarPayload{
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                    intValue: v
+                }
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<f64> for Var {
+    #[inline(always)]
+    fn from(v: f64) -> Self {
+        CBVar{
+            valueType: CBType_Float,
+            payload: CBVarPayload{
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                    floatValue: v
+                }
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<CBString> for Var {
+    #[inline(always)]
+    fn from(v: CBString) -> Self {
+        CBVar{
+            valueType: CBType_String,
+            payload: CBVarPayload{
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+                        stringValue: v,
+                        stackPosition: 0
+                    }
+                }
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&CString> for Var {
+    #[inline(always)]
+    fn from(v: &CString) -> Self {
+        CBVar{
+            valueType: CBType_String,
+            payload: CBVarPayload{
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+                        stringValue: v.as_ptr(),
+                        stackPosition: 0
+                    }
+                }
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<Option<&CString>> for Var {
+     #[inline(always)]
+    fn from(v: Option<&CString>) -> Self {
+        if v.is_none() {
+            Var::default()
+        } else {
+            Var::from(v.unwrap())
+        }
+    }
+}
+
+impl TryFrom<&Var> for std::string::String {
+    type Error = &'static str;
+
+    fn try_from(var: &Var) -> Result<Self, Self::Error> {
+        if var.valueType != CBType_String {
+            Err("Expected String variable, but casting failed.")
+        } else {
+            unsafe {
+                let cstr = CStr::from_ptr(var.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue);
+                Ok(std::string::String::from(cstr.to_str().unwrap()))
+            }
+        }
+    }
+}
+
+impl TryFrom<&Var> for CString {
+    type Error = &'static str;
+
+    fn try_from(var: &Var) -> Result<Self, Self::Error> {
+        if var.valueType != CBType_String {
+            Err("Expected String variable, but casting failed.")
+        } else {
+            unsafe {
+                let cstr = CStr::from_ptr(var.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue);
+                Ok(CString::from(cstr))
+            }
         }
     }
 }

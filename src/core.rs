@@ -3,6 +3,7 @@ use crate::chainblocksc::chainblocksInterface;
 use crate::block::Block;
 use crate::block::cblock_construct;
 use std::ffi::CString;
+use std::ffi::CStr;
 
 const ABI_VERSION: u32 = 0x20200101;
 
@@ -44,6 +45,12 @@ pub static mut Core: CBCore = CBCore {
     typesResize: None,
     typesFastDelete: None,
     typesSlowDelete: None,
+    paramsPush: None,
+    paramsInsert: None,
+    paramsPop: None,
+    paramsResize: None,
+    paramsFastDelete: None,
+    paramsSlowDelete: None,
     validateChain: None,
     runChain: None,
     validateBlocks: None,
@@ -118,5 +125,15 @@ pub fn registerBlock<T: Default + Block>(name: &str) {
             .unwrap()(
                 blkname.as_ptr(),
                 Some(cblock_construct::<T>));
+    }
+}
+
+#[inline(always)]
+pub fn getRootPath() -> &'static str {
+    unsafe {
+        CStr::from_ptr(
+            Core.getRootPath.unwrap()())
+            .to_str()
+            .unwrap()
     }
 }
