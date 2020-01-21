@@ -14,12 +14,14 @@ use crate::chainblocksc::CBContext;
 use crate::chainblocksc::CBType_Int;
 use crate::chainblocksc::CBType_Float;
 use crate::chainblocksc::CBType_String;
+use crate::chainblocksc::CBType_Seq;
 use crate::length;
 use crate::free;
 use crate::core::Core;
 use std::ffi::CString;
 use std::ffi::CStr;
 use std::convert::TryFrom;
+use std::convert::TryInto;
 
 pub type Context = CBContext;
 pub type Var = CBVar;
@@ -339,3 +341,38 @@ impl TryFrom<&Var> for i64 {
     }
 }
 
+impl TryFrom<&Var> for f64 {
+    type Error = &'static str;
+
+    #[inline(always)]
+    fn try_from(var: &Var) -> Result<Self, Self::Error> {
+        if var.valueType != CBType_Float {
+            Err("Expected Float variable, but casting failed.")
+        } else {
+            unsafe {
+                Ok(var.payload.__bindgen_anon_1.floatValue)
+            }
+        }
+    }
+}
+
+impl TryFrom<&Var> for Vec<Var> {
+    type Error = &'static str;
+
+    #[inline(always)]
+    fn try_from(var: &Var) -> Result<Self, Self::Error> {
+        if var.valueType != CBType_Seq {
+            Err("Expected Float variable, but casting failed.")
+        } else {
+            unsafe {
+                let mut res = Vec::<Var>::new();
+                let len = length(var.payload.__bindgen_anon_1.seqValue);
+                for i in 0..len {
+                    let var = var.payload.__bindgen_anon_1.seqValue.offset(i.try_into().unwrap());
+                    res.push(*var);
+                }
+                Ok(res)
+            }
+        }
+    }
+}
