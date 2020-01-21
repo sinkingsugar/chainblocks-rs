@@ -5,6 +5,7 @@ use crate::chainblocksc::CBExposedTypesInfo;
 use crate::chainblocksc::CBParameterInfo;
 use crate::chainblocksc::CBParametersInfo;
 use crate::chainblocksc::CBVar;
+use crate::chainblocksc::CBInstanceData;
 use crate::chainblocksc::CBString;
 use crate::chainblocksc::CBVarPayload;
 use crate::chainblocksc::CBVarPayload__bindgen_ty_1;
@@ -24,6 +25,7 @@ pub type Context = CBContext;
 pub type Var = CBVar;
 pub type Type = CBTypeInfo;
 pub type String = CBString;
+pub type InstanceData = CBInstanceData;
 
 unsafe impl std::marker::Sync for CBTypeInfo {
 }
@@ -176,6 +178,7 @@ pub mod common_type {
     use crate::chainblocksc::CBType_None;
     use crate::chainblocksc::CBType_Any;
     use crate::chainblocksc::CBType_String;
+    use crate::chainblocksc::CBType_Int;
 
     pub fn none() -> CBTypeInfo {
         CBTypeInfo{
@@ -194,6 +197,13 @@ pub mod common_type {
     pub fn string() -> CBTypeInfo {
         CBTypeInfo{
             basicType: CBType_String,
+            ..Default::default()
+        }
+    }
+
+    pub fn int() -> CBTypeInfo {
+        CBTypeInfo{
+            basicType: CBType_Int,
             ..Default::default()
         }
     }
