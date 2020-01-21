@@ -272,7 +272,7 @@ impl From<&CString> for Var {
 }
 
 impl From<Option<&CString>> for Var {
-     #[inline(always)]
+    #[inline(always)]
     fn from(v: Option<&CString>) -> Self {
         if v.is_none() {
             Var::default()
@@ -285,6 +285,7 @@ impl From<Option<&CString>> for Var {
 impl TryFrom<&Var> for std::string::String {
     type Error = &'static str;
 
+    #[inline(always)]
     fn try_from(var: &Var) -> Result<Self, Self::Error> {
         if var.valueType != CBType_String {
             Err("Expected String variable, but casting failed.")
@@ -300,6 +301,7 @@ impl TryFrom<&Var> for std::string::String {
 impl TryFrom<&Var> for CString {
     type Error = &'static str;
 
+    #[inline(always)]
     fn try_from(var: &Var) -> Result<Self, Self::Error> {
         if var.valueType != CBType_String {
             Err("Expected String variable, but casting failed.")
@@ -311,3 +313,19 @@ impl TryFrom<&Var> for CString {
         }
     }
 }
+
+impl TryFrom<&Var> for i64 {
+    type Error = &'static str;
+
+    #[inline(always)]
+    fn try_from(var: &Var) -> Result<Self, Self::Error> {
+        if var.valueType != CBType_Int {
+            Err("Expected Int variable, but casting failed.")
+        } else {
+            unsafe {
+                Ok(var.payload.__bindgen_anon_1.intValue)
+            }
+        }
+    }
+}
+
