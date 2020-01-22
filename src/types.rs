@@ -242,56 +242,68 @@ pub mod common_type {
     cbtype!(make_chain, CBType_Chain, chain, chains);
 }
 
+#[repr(transparent)] // force it same size of original
+pub struct OwnedVar(pub Var);
+
+impl Drop for OwnedVar {
+    #[inline(always)]
+    fn drop(&mut self) {
+        match self.0.valueType {
+            CBType_Seq => unsafe { free(self.0.payload.__bindgen_anon_1.seqValue); }
+            CBType_String => unsafe {
+                let p = self.0.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue as *mut i8;
+                let s = CString::from_raw(p);
+                drop(s);
+            }
+            _ => {}
+        }       
+        self.0 = CBVar::default();
+    }
+}
+
 impl From<()> for Var {
+    #[inline(always)]
     fn from(_: ()) -> Self {
         CBVar::default()
     }
 }
 
-impl From<bool> for Var {
+impl From<()> for OwnedVar {
     #[inline(always)]
-    fn from(v: bool) -> Self {
-        CBVar{
-            valueType: CBType_Bool,
-            payload: CBVarPayload{
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                    boolValue: v
+    fn from(_: ()) -> Self {
+       OwnedVar(Var::from(()))
+    }
+}
+
+macro_rules! var_from {
+    ($type:ident, $varfield:ident, $cbtype:expr) => {
+        impl From<$type> for Var {
+            #[inline(always)]
+            fn from(v: $type) -> Self {
+                CBVar{
+                    valueType: $cbtype,
+                    payload: CBVarPayload{
+                        __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                            $varfield: v
+                        }
+                    },
+                    ..Default::default()
                 }
-            },
-            ..Default::default()
+            }
+        }
+
+        impl From<$type> for OwnedVar {
+            #[inline(always)]
+            fn from(v: $type) -> Self {
+                OwnedVar(Var::from(v))
+            }
         }
     }
 }
 
-impl From<i64> for Var {
-    #[inline(always)]
-    fn from(v: i64) -> Self {
-        CBVar{
-            valueType: CBType_Int,
-            payload: CBVarPayload{
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                    intValue: v
-                }
-            },
-            ..Default::default()
-        }
-    }
-}
-
-impl From<f64> for Var {
-    #[inline(always)]
-    fn from(v: f64) -> Self {
-        CBVar{
-            valueType: CBType_Float,
-            payload: CBVarPayload{
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                    floatValue: v
-                }
-            },
-            ..Default::default()
-        }
-    }
-}
+var_from!(bool, boolValue, CBType_Bool);
+var_from!(i64, intValue, CBType_Int);
+var_from!(f64, floatValue, CBType_Float);
 
 impl From<CBString> for Var {
     #[inline(always)]
@@ -311,6 +323,28 @@ impl From<CBString> for Var {
     }
 }
 
+impl From<&CStr> for OwnedVar {
+    #[inline(always)]
+    fn from(v: &CStr) -> Self {
+        let s = v.to_str().unwrap();
+        let cstring = CString::new(s).unwrap();
+        let res = CBVar{
+            valueType: CBType_String,
+            payload: CBVarPayload{
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+                        stringValue: cstring.into_raw(),
+                        stackPosition: 0
+                    }
+                }
+            },
+            ..Default::default()
+        };
+        OwnedVar(res)
+    }
+}
+
+
 impl From<&CString> for Var {
     #[inline(always)]
     fn from(v: &CString) -> Self {
@@ -329,7 +363,18 @@ impl From<&CString> for Var {
     }
 }
 
-impl From<Vec<Var>> for Var {
+impl From<Option<&CString>> for Var {
+    #[inline(always)]
+    fn from(v: Option<&CString>) -> Self {
+        if v.is_none() {
+            Var::default()
+        } else {
+            Var::from(v.unwrap())
+        }
+    }
+}
+
+impl From<Vec<Var>> for OwnedVar {
     #[inline(always)]
     fn from(vec: Vec<Var>) -> Self {
         unsafe {
@@ -339,7 +384,7 @@ impl From<Vec<Var>> for Var {
                     .unwrap()
                     (cbseq, &v);
             }
-            CBVar{
+            let res = CBVar{
                 valueType: CBType_Seq,
                 payload: CBVarPayload{
                     __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
@@ -347,18 +392,8 @@ impl From<Vec<Var>> for Var {
                     }
                 },
                 ..Default::default()
-            }
-        }
-    }
-}
-
-impl From<Option<&CString>> for Var {
-    #[inline(always)]
-    fn from(v: Option<&CString>) -> Self {
-        if v.is_none() {
-            Var::default()
-        } else {
-            Var::from(v.unwrap())
+            };
+            OwnedVar(res)
         }
     }
 }

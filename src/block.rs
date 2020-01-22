@@ -41,6 +41,7 @@ pub trait Block {
     fn cleanup(&mut self) {}
 }
 
+#[repr(C)]
 pub struct BlockWrapper<T: Block> {
     header: CBlock,
     pub block: T,
