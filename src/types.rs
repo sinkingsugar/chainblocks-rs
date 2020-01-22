@@ -183,7 +183,11 @@ pub mod common_type {
     use crate::chainblocksc::CBType_Any;
     use crate::chainblocksc::CBType_String;
     use crate::chainblocksc::CBType_Int;
+    use crate::chainblocksc::CBType_Float;
     use crate::chainblocksc::CBType_Seq;
+    use crate::chainblocksc::CBType_Block;
+    use crate::chainblocksc::CBType_Bool;
+    use crate::chainblocksc::CBType_Chain;
     use crate::chainblocksc::CBTypeInfo__bindgen_ty_1;
 
     const fn base_info() -> CBTypeInfo {
@@ -211,28 +215,31 @@ pub mod common_type {
 
     pub static any: CBTypeInfo = make_any();
 
-    const fn make_string() -> CBTypeInfo {
-        let mut res = base_info();
-        res.basicType = CBType_String;
-        res
-    }
+    macro_rules! cbtype {
+        ($fname:ident, $type:expr, $name:ident, $names:ident) => {    
+            const fn $fname() -> CBTypeInfo {
+                let mut res = base_info();
+                res.basicType = $type;
+                res
+            }
 
-    pub static string: CBTypeInfo = make_string();
+            pub static $name: CBTypeInfo = $fname();
 
-    const fn make_int() -> CBTypeInfo {
-        let mut res = base_info();
-        res.basicType = CBType_Int;
-        res
-    }
-
-    pub static int: CBTypeInfo = make_int();
-
-    pub static ints: CBTypeInfo = CBTypeInfo{
-        basicType: CBType_Seq,
-        __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
-            seqType: (&int) as *const CBTypeInfo as *mut CBTypeInfo
+            pub static $names: CBTypeInfo = CBTypeInfo{
+                basicType: CBType_Seq,
+                __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
+                    seqType: (&$name) as *const CBTypeInfo as *mut CBTypeInfo
+                }
+            };
         }
-    };
+    }
+
+    cbtype!(make_string, CBType_String, string, strings);
+    cbtype!(make_int, CBType_Int, int, ints);
+    cbtype!(make_float, CBType_Float, float, floats);
+    cbtype!(make_bool, CBType_Bool, bool, bools);
+    cbtype!(make_block, CBType_Block, block, blocks);
+    cbtype!(make_chain, CBType_Chain, chain, chains);
 }
 
 impl From<()> for Var {
