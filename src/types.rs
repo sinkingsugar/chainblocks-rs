@@ -7,6 +7,7 @@ use crate::chainblocksc::CBParametersInfo;
 use crate::chainblocksc::CBVar;
 use crate::chainblocksc::CBInstanceData;
 use crate::chainblocksc::CBString;
+use crate::chainblocksc::CBSeq;
 use crate::chainblocksc::CBVarPayload;
 use crate::chainblocksc::CBVarPayload__bindgen_ty_1;
 use crate::chainblocksc::CBVarPayload__bindgen_ty_1__bindgen_ty_2;
@@ -15,6 +16,7 @@ use crate::chainblocksc::CBType_Int;
 use crate::chainblocksc::CBType_Float;
 use crate::chainblocksc::CBType_String;
 use crate::chainblocksc::CBType_Seq;
+use crate::chainblocksc::CBType_Bool;
 use crate::length;
 use crate::free;
 use crate::core::Core;
@@ -181,39 +183,76 @@ pub mod common_type {
     use crate::chainblocksc::CBType_Any;
     use crate::chainblocksc::CBType_String;
     use crate::chainblocksc::CBType_Int;
+    use crate::chainblocksc::CBType_Seq;
+    use crate::chainblocksc::CBTypeInfo__bindgen_ty_1;
 
-    pub fn none() -> CBTypeInfo {
+    const fn base_info() -> CBTypeInfo {
         CBTypeInfo{
             basicType: CBType_None,
-            ..Default::default()
+            __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
+                seqType: std::ptr::null_mut()
+            }
         }
     }
 
-    pub fn any() -> CBTypeInfo {
-        CBTypeInfo{
-            basicType: CBType_Any,
-            ..Default::default()
-        }
+    const fn make_none() -> CBTypeInfo {
+        let mut res = base_info();
+        res.basicType = CBType_None;
+        res
     }
 
-    pub fn string() -> CBTypeInfo {
-        CBTypeInfo{
-            basicType: CBType_String,
-            ..Default::default()
-        }
+    pub static none: CBTypeInfo = make_none();
+
+    const fn make_any() -> CBTypeInfo {
+        let mut res = base_info();
+        res.basicType = CBType_Any;
+        res
     }
 
-    pub fn int() -> CBTypeInfo {
-        CBTypeInfo{
-            basicType: CBType_Int,
-            ..Default::default()
-        }
+    pub static any: CBTypeInfo = make_any();
+
+    const fn make_string() -> CBTypeInfo {
+        let mut res = base_info();
+        res.basicType = CBType_String;
+        res
     }
+
+    pub static string: CBTypeInfo = make_string();
+
+    const fn make_int() -> CBTypeInfo {
+        let mut res = base_info();
+        res.basicType = CBType_Int;
+        res
+    }
+
+    pub static int: CBTypeInfo = make_int();
+
+    pub static ints: CBTypeInfo = CBTypeInfo{
+        basicType: CBType_Seq,
+        __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
+            seqType: (&int) as *const CBTypeInfo as *mut CBTypeInfo
+        }
+    };
 }
 
 impl From<()> for Var {
     fn from(_: ()) -> Self {
         CBVar::default()
+    }
+}
+
+impl From<bool> for Var {
+    #[inline(always)]
+    fn from(v: bool) -> Self {
+        CBVar{
+            valueType: CBType_Bool,
+            payload: CBVarPayload{
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                    boolValue: v
+                }
+            },
+            ..Default::default()
+        }
     }
 }
 
@@ -279,6 +318,29 @@ impl From<&CString> for Var {
                 }
             },
             ..Default::default()
+        }
+    }
+}
+
+impl From<Vec<Var>> for Var {
+    #[inline(always)]
+    fn from(vec: Vec<Var>) -> Self {
+        unsafe {
+            let mut cbseq: CBSeq = std::ptr::null_mut();
+            for v in vec {
+                cbseq = Core.seqPush
+                    .unwrap()
+                    (cbseq, &v);
+            }
+            CBVar{
+                valueType: CBType_Seq,
+                payload: CBVarPayload{
+                    __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                        seqValue: cbseq
+                    }
+                },
+                ..Default::default()
+            }
         }
     }
 }
@@ -351,6 +413,21 @@ impl TryFrom<&Var> for f64 {
         } else {
             unsafe {
                 Ok(var.payload.__bindgen_anon_1.floatValue)
+            }
+        }
+    }
+}
+
+impl TryFrom<&Var> for bool {
+    type Error = &'static str;
+
+    #[inline(always)]
+    fn try_from(var: &Var) -> Result<Self, Self::Error> {
+        if var.valueType != CBType_Bool {
+            Err("Expected Float variable, but casting failed.")
+        } else {
+            unsafe {
+                Ok(var.payload.__bindgen_anon_1.boolValue)
             }
         }
     }

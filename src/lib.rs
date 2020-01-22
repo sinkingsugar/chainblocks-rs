@@ -144,8 +144,8 @@ mod dummy_block {
     impl Default for DummyBlock {
         fn default() -> Self {
             DummyBlock{
-                inputTypes: Types::from(vec![common_type::none()]),
-                outputTypes: Types::from(vec![common_type::any()])
+                inputTypes: Types::from(vec![common_type::none]),
+                outputTypes: Types::from(vec![common_type::any])
             }
         }
     }
