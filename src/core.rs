@@ -1,5 +1,6 @@
 use crate::chainblocksc::CBCore;
 use crate::chainblocksc::chainblocksInterface;
+use crate::chainblocksc::CBlockRef;
 use crate::block::Block;
 use crate::block::cblock_construct;
 use std::ffi::CString;
@@ -115,7 +116,7 @@ pub fn init() {
 
 #[inline(always)]
 pub fn log(s: &str) {
-    let clog = CString::new(s).expect("CString failed.");
+    let clog = CString::new(s).unwrap();
     unsafe {
         Core.log.unwrap()(clog.as_ptr());
     }
@@ -130,8 +131,7 @@ pub fn sleep(seconds: f64) {
 
 #[inline(always)]
 pub fn registerBlock<T: Default + Block>(name: &str) {
-    let blkname = CString::new(name)
-        .expect("CString failed...");
+    let blkname = CString::new(name).unwrap();
     unsafe {
         Core.registerBlock
             .unwrap()(
@@ -147,5 +147,13 @@ pub fn getRootPath() -> &'static str {
             Core.getRootPath.unwrap()())
             .to_str()
             .unwrap()
+    }
+}
+
+#[inline(always)]
+pub fn createBlock(name: &str) -> CBlockRef {
+    let cname = CString::new(name).unwrap();
+    unsafe {
+        Core.createBlock.unwrap()(cname.as_ptr())
     }
 }

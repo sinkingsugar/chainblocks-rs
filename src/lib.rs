@@ -108,20 +108,34 @@ pub trait IntoVar {
     fn into_var(self) -> CBVar;
 }
 
-macro_rules! blocks {
-    ((--> $($param:tt) *)) => { blocks!($($param) *); };
-    
+// use this to develop/debug:
+// cargo +nightly rustc --profile=check -- -Zunstable-options --pretty=expanded
+
+macro_rules! var {
+    ((--> $($param:tt) *)) => { Var::from(blocks!($($param) *)) };
+    ($vexp:expr) => { Var::from($vexp) }
+}
+
+macro_rules! blocks {    
     ($(($block:ident $($param:tt) *)) *) => {
-        // $(
-        //     log_syntax!($block);
-        //     $(
-        //         log_syntax!($param);
-        //     ) *
-        // ) *
         {
-            let mut x = Vec::<&str>::new();
+            let mut x = Vec::<$crate::chainblocksc::CBlockRef>::new();
             $(
-                x.push(stringify!($block));
+                {
+                    let blk = $crate::core::createBlock(stringify!($block));
+                    unsafe {
+                        (*blk).setup.unwrap()(blk);
+                    }
+                    let mut pidx: i32 = 0;
+                    $(
+                        {
+                            let pvar = var!($param);
+                            (*blk).setParam.unwrap()(blk, pidx, pvar);
+                            pidx += 1;
+                        }
+                    ) *
+                        x.push(blk);
+                }
             ) *
             x
         }
@@ -129,7 +143,7 @@ macro_rules! blocks {
 }
 
 // --features "dummy"
-#[cfg(any(test, feature = "dummy"))]
+//#[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
 
@@ -151,6 +165,7 @@ mod dummy_block {
     use crate::core::log;
     use crate::core::sleep;
     use crate::core::init;
+    use crate::core::createBlock;
 
     struct DummyBlock {
         inputTypes: Types,
@@ -196,6 +211,15 @@ mod dummy_block {
         }
     }
 
+    fn macroTest() {
+        // let blks =
+        //     blocks!((Const 10)
+        //             (Log)
+        //             (Repeat
+        //              (-->
+        //               (Msg "repeating..."))));
+    }
+
     #[test]
     fn instanciate() {
         let mut blk = create::<DummyBlock>();
@@ -213,16 +237,7 @@ mod dummy_block {
             (*cblk).destroy.unwrap()(cblk);
         }
 
-        // let blks = blocks!(
-        //     (-->
-        //      (Const 10))
-        // );
-        let blks =
-            blocks!((Const 10)
-                    (Log)
-                    (Repeat
-                     (-->
-                      (Msg "repeating..."))));
+        macroTest();
         
         log("Hello chainblocks-rs");
     }
