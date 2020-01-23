@@ -8,7 +8,6 @@
 #[macro_use]
 
 extern crate ctor;
-extern crate edn;
 
 mod chainblocksc;
 pub mod core;
@@ -109,14 +108,31 @@ pub trait IntoVar {
     fn into_var(self) -> CBVar;
 }
 
-pub fn unused() {}
+macro_rules! blocks {
+    ((--> $($param:tt) *)) => { blocks!($($param) *); };
+    
+    ($(($block:ident $($param:tt) *)) *) => {
+        // $(
+        //     log_syntax!($block);
+        //     $(
+        //         log_syntax!($param);
+        //     ) *
+        // ) *
+        {
+            let mut x = Vec::<&str>::new();
+            $(
+                x.push(stringify!($block));
+            ) *
+            x
+        }
+    };
+}
 
 // --features "dummy"
 #[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
 
-    use edn::parser::Parser;
     use crate::core::Core;
     use crate::block::cblock_construct;
     use crate::block::Block;
@@ -197,10 +213,17 @@ mod dummy_block {
             (*cblk).destroy.unwrap()(cblk);
         }
 
+        // let blks = blocks!(
+        //     (-->
+        //      (Const 10))
+        // );
+        let blks =
+            blocks!((Const 10)
+                    (Log)
+                    (Repeat
+                     (-->
+                      (Msg "repeating..."))));
+        
         log("Hello chainblocks-rs");
-
-        let ednstr = "(schedule Root (Chain \"hello\" :Looped (Msg \"tick\")))";
-        let mut p = Parser::new(ednstr);
-        println!("{:?}", p.read());
     }
 }

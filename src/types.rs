@@ -257,7 +257,6 @@ impl Drop for OwnedVar {
             }
             _ => {}
         }       
-        self.0 = CBVar::default();
     }
 }
 
