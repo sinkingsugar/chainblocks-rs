@@ -98,6 +98,7 @@ unsafe extern "C" fn cblock_destroy<T: Block>(arg1: *mut CBlock) {
     let blk = arg1 as *mut BlockWrapper<T>;
     (*blk).block.destroy();
     Box::from_raw(blk);
+    drop(blk);
 }
 
 unsafe extern "C" fn cblock_activate<T: Block>(arg1: *mut CBlock,

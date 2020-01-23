@@ -46,13 +46,31 @@ impl<T> BaseArray<T> {
     }
 
     fn length(&self) -> u64 {
-        return length(self.carr);
+        return crate::length(self.carr);
     }
 }
 
 impl<T> Drop for BaseArray<T> {
     fn drop(&mut self) {
         free(self.carr);
+    }
+}
+
+#[inline(always)]
+pub fn reset_seq(v: &mut Var) {
+    if v.valueType == CBType_Seq {
+        // if we already are a sequence, reset members, and resize to 0
+        unsafe {
+            let len = length(v.payload.__bindgen_anon_1.seqValue);      
+            for offset in (0..len).rev() {
+                reset_seq(
+                    v.payload.__bindgen_anon_1.seqValue.offset(
+                        offset.try_into().unwrap()).as_mut().unwrap());
+            }
+            Core.seqResize.unwrap()(v.payload.__bindgen_anon_1.seqValue, 0);
+        }
+    } else {
+        *v = Var::from(());
     }
 }
 
@@ -343,6 +361,24 @@ impl From<&CStr> for OwnedVar {
     }
 }
 
+impl From<&CStr> for Var {
+    #[inline(always)]
+    fn from(v: &CStr) -> Self {
+        let res = CBVar{
+            valueType: CBType_String,
+            payload: CBVarPayload{
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+                        stringValue: v.as_ptr(),
+                        stackPosition: 0
+                    }
+                }
+            },
+            ..Default::default()
+        };
+        res
+    }
+}
 
 impl From<&CString> for Var {
     #[inline(always)]

@@ -166,6 +166,8 @@ mod dummy_block {
     use crate::core::sleep;
     use crate::core::init;
     use crate::core::createBlock;
+    use crate::core::cloneVar;
+    use crate::chainblocksc::CBType_Int;
 
     struct DummyBlock {
         inputTypes: Types,
@@ -238,6 +240,16 @@ mod dummy_block {
         }
 
         macroTest();
+
+        let a = Var::from(10);
+        let mut b = Var::from(());
+        cloneVar(&mut b, &a);
+        unsafe {
+            assert_eq!(a.valueType, CBType_Int);
+            assert_eq!(b.valueType, CBType_Int);
+            assert_eq!(a.payload.__bindgen_anon_1.intValue, 10);
+            assert_eq!(a.payload.__bindgen_anon_1.intValue, b.payload.__bindgen_anon_1.intValue);
+        }
         
         log("Hello chainblocks-rs");
     }

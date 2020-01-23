@@ -2,6 +2,7 @@ use crate::chainblocksc::CBCore;
 use crate::chainblocksc::chainblocksInterface;
 use crate::chainblocksc::CBlockRef;
 use crate::block::Block;
+use crate::types::Var;
 use crate::block::cblock_construct;
 use std::ffi::CString;
 use std::ffi::CStr;
@@ -155,5 +156,12 @@ pub fn createBlock(name: &str) -> CBlockRef {
     let cname = CString::new(name).unwrap();
     unsafe {
         Core.createBlock.unwrap()(cname.as_ptr())
+    }
+}
+
+#[inline(always)]
+pub fn cloneVar(dst: &mut Var, src: &Var) {
+    unsafe {
+        Core.cloneVar.unwrap()(dst, src);
     }
 }
