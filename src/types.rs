@@ -17,8 +17,6 @@ use crate::chainblocksc::CBType_Float;
 use crate::chainblocksc::CBType_String;
 use crate::chainblocksc::CBType_Seq;
 use crate::chainblocksc::CBType_Bool;
-use crate::length;
-use crate::free;
 use crate::core::Core;
 use std::ffi::CString;
 use std::ffi::CStr;
@@ -31,133 +29,121 @@ pub type Type = CBTypeInfo;
 pub type String = CBString;
 pub type InstanceData = CBInstanceData;
 
+/*
+CBTypeInfo & co
+*/
 unsafe impl std::marker::Sync for CBTypeInfo {
 }
 
-pub struct BaseArray<T> {
-    pub carr: *mut T
-}
+// Todo CBTypeInfo proper wrapper Type with helpers
 
-impl<T> BaseArray<T> {
-    fn new() -> Self {
-        return BaseArray::<T>{
-            carr: std::ptr::null_mut() as *mut T
-        };
-    }
+pub type Types = Vec<Type>;
 
-    fn length(&self) -> u64 {
-        return crate::length(self.carr);
-    }
-}
-
-impl<T> Drop for BaseArray<T> {
-    fn drop(&mut self) {
-        free(self.carr);
-    }
-}
-
-#[inline(always)]
-pub fn reset_seq(v: &mut Var) {
-    if v.valueType == CBType_Seq {
-        // if we already are a sequence, reset members, and resize to 0
-        unsafe {
-            let len = length(v.payload.__bindgen_anon_1.seqValue);      
-            for offset in (0..len).rev() {
-                reset_seq(
-                    v.payload.__bindgen_anon_1.seqValue.offset(
-                        offset.try_into().unwrap()).as_mut().unwrap());
-            }
-            Core.seqResize.unwrap()(v.payload.__bindgen_anon_1.seqValue, 0);
+impl From<&Types> for CBTypesInfo {
+    fn from(types: &Types) -> Self {
+        CBTypesInfo{
+            elements: types.as_ptr() as *mut CBTypeInfo,
+            len: types.len() as u32,
+            cap: 0
         }
-    } else {
-        *v = Var::from(());
     }
 }
 
-pub type Types = BaseArray<CBTypeInfo>;
-
-impl From<Vec<CBTypeInfo>> for Types {
-    fn from(v: Vec<CBTypeInfo>) -> Types {
-        let mut res: Types = Types::new();
-        for t in &v {
-            unsafe {
-                res.carr = Core.typesPush
-                    .unwrap()
-                    (res.carr, t);
-            }
-        }
-        return res;
+fn internal_from_types(types: Types) -> CBTypesInfo {
+    let len = types.len();
+    let boxed = types.into_boxed_slice();
+    CBTypesInfo{
+        elements: Box::into_raw(boxed) as *mut CBTypeInfo,
+        len: len as u32,
+        cap: 0
     }
 }
 
-pub struct ExposedInfo {
-    ctype: CBTypeInfo,
-    name: CString,
-    help: CString,
-    isMutable: bool
+unsafe fn internal_drop_types(types: CBTypesInfo) {
+    // use with care
+    let elems = Box::from_raw(types.elements);
+    drop(elems);
 }
+
+/*
+CBExposedTypeInfo & co
+*/
+#[repr(transparent)]
+pub struct ExposedInfo(CBExposedTypeInfo);
 
 impl ExposedInfo {
     fn new(name: &str,
            ctype: CBTypeInfo) -> Self {
-        ExposedInfo{
-            ctype: ctype,
-            name: CString::new(name)
-                .expect("CString failed."),
-            help: CString::new("")
-                .expect("CString failed."),
-            isMutable: false,
-        }
+        let cname = CString::new(name).unwrap();
+        let chelp = core::ptr::null();
+        let res = CBExposedTypeInfo{
+            exposedType: ctype,
+            name: cname.into_raw(),
+            help: chelp,
+            isMutable: false
+        };
+        ExposedInfo(res)
     }
+}
 
-    pub fn native(&self) -> CBExposedTypeInfo {
-        CBExposedTypeInfo{
-            name: self.name.as_ptr(),
-            help: self.help.as_ptr(),
-            exposedType: self.ctype,
-            isMutable: self.isMutable
+impl Drop for ExposedInfo {
+    fn drop(&mut self) {
+        if self.0.name != core::ptr::null() {
+            unsafe {
+                let cname = CString::from_raw(self.0.name as *mut i8);
+                drop(cname);
+            }
+        }
+        if self.0.help != core::ptr::null() {
+            unsafe {
+                let chelp = CString::from_raw(self.0.help as *mut i8);
+                drop(chelp);
+            }
         }
     }
 }
 
-pub type ExposedTypes = BaseArray<CBExposedTypeInfo>;
+pub type ExposedTypes = Vec<ExposedInfo>;
 
-pub struct ParameterInfo {
-    name: CString,
-    help: CString,
-    types: Types,
+impl From<&ExposedTypes> for CBExposedTypesInfo {
+    fn from(vec: &ExposedTypes) -> Self {
+        CBExposedTypesInfo{
+            elements: vec.as_ptr() as *mut CBExposedTypeInfo,
+            len: vec.len() as u32,
+            cap: 0
+        }
+    }
 }
+
+/*
+CBParameterInfo & co
+ */
+pub struct ParameterInfo(CBParameterInfo);
 
 impl ParameterInfo {
     fn new(name: &str,
            types: Types) -> Self {
-        ParameterInfo{
-            name: CString::new(name)
-                .expect("CString failed."),
-            help: CString::new("")
-                .expect("CString failed."),
-            types: types
-        }
+        let cname = CString::new(name).unwrap();
+        let chelp = core::ptr::null();
+        let res = CBParameterInfo{
+            name: cname.into_raw() as *mut i8,
+            help: chelp,
+            valueTypes: internal_from_types(types)
+        };
+        ParameterInfo(res)
     }
 
     fn new1(name: &str,
            help: &str,
            types: Types) -> Self {
-        ParameterInfo{
-            name: CString::new(name)
-                .expect("CString failed."),
-            help: CString::new(help)
-                .expect("CString failed."),
-            types: types
-        }
-    }
-
-    pub fn native(&self) -> CBParameterInfo {
-        CBParameterInfo{
-            name: self.name.as_ptr(),
-            help: self.help.as_ptr(),
-            valueTypes: self.types.carr
-        }
+        let cname = CString::new(name).unwrap();
+        let chelp = CString::new(help).unwrap();
+        let res = CBParameterInfo{
+            name: cname.into_raw() as *mut i8,
+            help: chelp.into_raw() as *mut i8,
+            valueTypes: internal_from_types(types)
+        };
+        ParameterInfo(res)
     }
 }
 
@@ -173,28 +159,41 @@ impl From<(&str, &str, Types)> for ParameterInfo {
     }
 }
 
-pub struct Parameters {
-    params: Vec<ParameterInfo>,
-    pub cparams: BaseArray<CBParameterInfo>,
-}
-
-impl From<Vec<ParameterInfo>> for Parameters {
-    fn from(v: Vec<ParameterInfo>) -> Parameters {
-        let mut cparams = BaseArray::<CBParameterInfo>::new();
-        for t in &v {
+impl Drop for ParameterInfo {
+    fn drop(&mut self) {
+        if self.0.name != core::ptr::null() {
             unsafe {
-                cparams.carr = Core.paramsPush
-                    .unwrap()
-                    (cparams.carr, &t.native());
+                let cname = CString::from_raw(self.0.name as *mut i8);
+                drop(cname);
             }
         }
-        Parameters{
-            params: v,
-            cparams: cparams
+        if self.0.help != core::ptr::null() {
+            unsafe {
+                let chelp = CString::from_raw(self.0.help as *mut i8);
+                drop(chelp);
+            }
+        }
+        unsafe {
+            internal_drop_types(self.0.valueTypes);
         }
     }
 }
 
+pub type Parameters = Vec<ParameterInfo>;
+
+impl From<&Parameters> for CBParametersInfo {
+    fn from(vec: &Parameters) -> Self {
+        CBParametersInfo{
+            elements: vec.as_ptr() as *mut CBParameterInfo,
+            len: vec.len() as u32,
+            cap: 0
+        }
+    }
+}
+
+/*
+Static common type infos utility
+*/
 pub mod common_type {
     use crate::chainblocksc::CBTypeInfo;
     use crate::chainblocksc::CBType_None;
@@ -212,7 +211,7 @@ pub mod common_type {
         CBTypeInfo{
             basicType: CBType_None,
             __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
-                seqType: std::ptr::null_mut()
+                seqType: core::ptr::null_mut()
             }
         }
     }
@@ -260,6 +259,9 @@ pub mod common_type {
     cbtype!(make_chain, CBType_Chain, chain, chains);
 }
 
+/*
+CBVar utility
+*/
 #[repr(transparent)] // force it same size of original
 pub struct OwnedVar(pub Var);
 
@@ -267,7 +269,10 @@ impl Drop for OwnedVar {
     #[inline(always)]
     fn drop(&mut self) {
         match self.0.valueType {
-            CBType_Seq => unsafe { free(self.0.payload.__bindgen_anon_1.seqValue); }
+            CBType_Seq => unsafe {
+                let s = &self.0.payload.__bindgen_anon_1.seqValue as *const CBSeq as *mut CBSeq;
+                Core.seqFree.unwrap()(s);
+            }
             CBType_String => unsafe {
                 let p = self.0.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue as *mut i8;
                 let s = CString::from_raw(p);
@@ -413,11 +418,10 @@ impl From<Vec<Var>> for OwnedVar {
     #[inline(always)]
     fn from(vec: Vec<Var>) -> Self {
         unsafe {
-            let mut cbseq: CBSeq = std::ptr::null_mut();
+            let cbseq = CBSeq::default();
+            let sptr = &cbseq as *const CBSeq as *mut CBSeq;
             for v in vec {
-                cbseq = Core.seqPush
-                    .unwrap()
-                    (cbseq, &v);
+                Core.seqPush.unwrap()(sptr, &v);
             }
             let res = CBVar{
                 valueType: CBType_Seq,
@@ -510,7 +514,7 @@ impl TryFrom<&Var> for bool {
     }
 }
 
-impl TryFrom<&Var> for Vec<Var> {
+impl TryFrom<&Var> for &[Var] {
     type Error = &'static str;
 
     #[inline(always)]
@@ -519,12 +523,9 @@ impl TryFrom<&Var> for Vec<Var> {
             Err("Expected Float variable, but casting failed.")
         } else {
             unsafe {
-                let mut res = Vec::<Var>::new();
-                let len = length(var.payload.__bindgen_anon_1.seqValue);
-                for i in 0..len {
-                    let var = var.payload.__bindgen_anon_1.seqValue.offset(i.try_into().unwrap());
-                    res.push(*var);
-                }
+                let elems = var.payload.__bindgen_anon_1.seqValue.elements;
+                let len = var.payload.__bindgen_anon_1.seqValue.len;
+                let res = std::slice::from_raw_parts(elems, len as usize);
                 Ok(res)
             }
         }

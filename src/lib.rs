@@ -27,87 +27,6 @@ use crate::chainblocksc::CBContext;
 use crate::chainblocksc::CBlock;
 use crate::chainblocksc::CBSeq;
 
-#[inline(always)]
-fn length<T>(a: *mut T) -> u64 {
-    unsafe {
-        let arr = a as *mut std::ffi::c_void;
-        return Core
-            .arrayLength
-            .unwrap()
-            (arr);
-    }
-}
-
-#[inline(always)]
-fn free<T>(a: *mut T) {
-    unsafe {
-        let arr = a as *mut std::ffi::c_void;
-        Core
-            .arrayFree
-            .unwrap()
-            (arr);
-    }
-}
-
-struct Seq {
-    cseq: CBSeq
-}
-
-impl Seq {
-    fn new() -> Seq {
-        return Seq{
-            cseq: std::ptr::null_mut() as CBSeq
-        };
-    }
-
-    fn length(&self) -> u64 {
-        return length(self.cseq);
-    }
-}
-
-impl Drop for Seq {
-    fn drop(&mut self) {
-        free(self.cseq);
-    }
-}
-
-struct SeqIterator {
-    seq: Seq,
-    count: u64
-}
-
-impl Iterator for SeqIterator {
-    type Item = CBVar;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count < length(self.seq.cseq) {
-            unsafe {
-                let item = *self.seq.cseq.offset(self.count.try_into().unwrap());
-                self.count += 1;
-                Some(item)
-            }
-        } else {
-            None
-        }
-    }
-}
-
-impl IntoIterator for Seq {
-    type Item = CBVar;
-    type IntoIter = SeqIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        return SeqIterator{
-            seq: self,
-            count: 0
-        };
-    }
-}
-
-pub trait IntoVar {
-    fn into_var(self) -> CBVar;
-}
-
 // use this to develop/debug:
 // cargo +nightly rustc --profile=check -- -Zunstable-options --pretty=expanded
 
@@ -152,7 +71,6 @@ mod dummy_block {
     use crate::block::Block;
     use crate::block::BlockWrapper;
     use super::block::create;
-    use super::Seq;
     use super::Types;
     use crate::chainblocksc::CBVar;
     use crate::chainblocksc::CBTypeInfo;
@@ -226,9 +144,6 @@ mod dummy_block {
     fn instanciate() {
         let mut blk = create::<DummyBlock>();
         assert_eq!("Dummy".to_string(), blk.block.name());
-
-        let s = Seq::new();
-        assert_eq!(s.length(), 0);
 
         let blkname = CString::new("Dummy").expect("CString failed...");        
         unsafe {

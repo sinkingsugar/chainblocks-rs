@@ -80,13 +80,13 @@ unsafe extern "C" fn cblock_help<T: Block>(arg1: *mut CBlock) -> *const ::std::o
 unsafe extern "C" fn cblock_inputTypes<T: Block>(arg1: *mut CBlock) -> CBTypesInfo {
     let blk = arg1 as *mut BlockWrapper<T>;
     let t = (*blk).block.inputTypes();
-    return t.carr;
+    CBTypesInfo::from(t)
 }
 
 unsafe extern "C" fn cblock_outputTypes<T: Block>(arg1: *mut CBlock) -> CBTypesInfo {
     let blk = arg1 as *mut BlockWrapper<T>;
     let t = (*blk).block.outputTypes();
-    return t.carr;
+    CBTypesInfo::from(t)
 }
 
 unsafe extern "C" fn cblock_setup<T: Block>(arg1: *mut CBlock) {
@@ -115,21 +115,19 @@ unsafe extern "C" fn cblock_cleanup<T: Block>(arg1: *mut CBlock) {
 
 unsafe extern "C" fn cblock_exposedVariables<T: Block>(arg1: *mut CBlock) -> CBExposedTypesInfo {
     let blk = arg1 as *mut BlockWrapper<T>;
-    let exposed = (*blk).block.exposedVariables();
-    if exposed.is_some() {
-        exposed.unwrap().carr
+    if let Some(exposed) = (*blk).block.exposedVariables() {
+        CBExposedTypesInfo::from(exposed)
     } else {
-        std::ptr::null_mut()
+        CBExposedTypesInfo::default()
     }
 }
 
 unsafe extern "C" fn cblock_consumedVariables<T: Block>(arg1: *mut CBlock) -> CBExposedTypesInfo {
     let blk = arg1 as *mut BlockWrapper<T>;
-    let consumed = (*blk).block.consumedVariables();
-    if consumed.is_some() {
-        consumed.unwrap().carr
+    if let Some(consumed) = (*blk).block.consumedVariables() {
+        CBExposedTypesInfo::from(consumed)
     } else {
-        std::ptr::null_mut()
+        CBExposedTypesInfo::default()
     }
 }
 
@@ -140,11 +138,10 @@ unsafe extern "C" fn cblock_compose<T: Block>(arg1: *mut CBlock, data: CBInstanc
 
 unsafe extern "C" fn cblock_parameters<T: Block>(arg1: *mut CBlock) -> CBParametersInfo {
     let blk = arg1 as *mut BlockWrapper<T>;
-    let params = (*blk).block.parameters();
-    if params.is_some() {
-        params.unwrap().cparams.carr
+    if let Some(params) = (*blk).block.parameters() {
+        CBParametersInfo::from(params)
     } else {
-        std::ptr::null_mut()
+        CBParametersInfo::default()
     }
 }
 
