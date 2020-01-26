@@ -196,6 +196,7 @@ Static common type infos utility
 */
 pub mod common_type {
     use crate::chainblocksc::CBTypeInfo;
+    use crate::chainblocksc::CBTypesInfo;
     use crate::chainblocksc::CBType_None;
     use crate::chainblocksc::CBType_Any;
     use crate::chainblocksc::CBType_String;
@@ -211,7 +212,11 @@ pub mod common_type {
         CBTypeInfo{
             basicType: CBType_None,
             __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
-                seqType: core::ptr::null_mut()
+                seqTypes: CBTypesInfo{
+                    elements: core::ptr::null_mut(),
+                    len: 0,
+                    cap: 0
+                }
             }
         }
     }
@@ -224,16 +229,8 @@ pub mod common_type {
 
     pub static none: CBTypeInfo = make_none();
 
-    const fn make_any() -> CBTypeInfo {
-        let mut res = base_info();
-        res.basicType = CBType_Any;
-        res
-    }
-
-    pub static any: CBTypeInfo = make_any();
-
     macro_rules! cbtype {
-        ($fname:ident, $type:expr, $name:ident, $names:ident) => {    
+        ($fname:ident, $type:expr, $name:ident, $names:ident, $name_seq:ident) => {    
             const fn $fname() -> CBTypeInfo {
                 let mut res = base_info();
                 res.basicType = $type;
@@ -242,21 +239,28 @@ pub mod common_type {
 
             pub static $name: CBTypeInfo = $fname();
 
+            pub static $name_seq: &'static [CBTypeInfo] = &[$name];
+
             pub static $names: CBTypeInfo = CBTypeInfo{
                 basicType: CBType_Seq,
                 __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
-                    seqType: (&$name) as *const CBTypeInfo as *mut CBTypeInfo
+                    seqTypes: CBTypesInfo{
+                        elements: $name_seq.as_ptr() as *mut CBTypeInfo,
+                        len: 1,
+                        cap: 0
+                    }
                 }
             };
         }
     }
 
-    cbtype!(make_string, CBType_String, string, strings);
-    cbtype!(make_int, CBType_Int, int, ints);
-    cbtype!(make_float, CBType_Float, float, floats);
-    cbtype!(make_bool, CBType_Bool, bool, bools);
-    cbtype!(make_block, CBType_Block, block, blocks);
-    cbtype!(make_chain, CBType_Chain, chain, chains);
+    cbtype!(make_any, CBType_Any, any, anys, any_seq);
+    cbtype!(make_string, CBType_String, string, strings, string_seq);
+    cbtype!(make_int, CBType_Int, int, ints, int_seq);
+    cbtype!(make_float, CBType_Float, float, floats, float_seq);
+    cbtype!(make_bool, CBType_Bool, bool, bools, bool_seq);
+    cbtype!(make_block, CBType_Block, block, blocks, block_seq);
+    cbtype!(make_chain, CBType_Chain, chain, chains, chain_seq);
 }
 
 /*
