@@ -80,7 +80,8 @@ impl ExposedInfo {
             exposedType: ctype,
             name: cname.into_raw(),
             help: chelp,
-            isMutable: false
+            isMutable: false,
+            isTableEntry: false,
         };
         ExposedInfo(res)
     }
