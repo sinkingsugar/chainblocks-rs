@@ -1,6 +1,6 @@
 use crate::chainblocksc::CBCore;
 use crate::chainblocksc::chainblocksInterface;
-use crate::chainblocksc::CBlockRef;
+use crate::chainblocksc::CBlockPtr;
 use crate::block::Block;
 use crate::types::Var;
 use crate::block::cblock_construct;
@@ -75,6 +75,7 @@ pub static mut Core: CBCore = CBCore {
     stringsResize: None,
     stringsFastDelete: None,
     stringsSlowDelete: None,
+    tableNew: None,
     validateChain: None,
     runChain: None,
     validateBlocks: None,
@@ -162,7 +163,7 @@ pub fn getRootPath() -> &'static str {
 }
 
 #[inline(always)]
-pub fn createBlock(name: &str) -> CBlockRef {
+pub fn createBlock(name: &str) -> CBlockPtr {
     let cname = CString::new(name).unwrap();
     unsafe {
         Core.createBlock.unwrap()(cname.as_ptr())
