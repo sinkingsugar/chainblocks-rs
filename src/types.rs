@@ -1,27 +1,27 @@
-use crate::chainblocksc::CBTypeInfo;
-use crate::chainblocksc::CBTypesInfo;
+use crate::chainblocksc::CBContext;
 use crate::chainblocksc::CBExposedTypeInfo;
 use crate::chainblocksc::CBExposedTypesInfo;
+use crate::chainblocksc::CBInstanceData;
 use crate::chainblocksc::CBParameterInfo;
 use crate::chainblocksc::CBParametersInfo;
-use crate::chainblocksc::CBVar;
-use crate::chainblocksc::CBInstanceData;
-use crate::chainblocksc::CBString;
 use crate::chainblocksc::CBSeq;
+use crate::chainblocksc::CBString;
+use crate::chainblocksc::CBTypeInfo;
+use crate::chainblocksc::CBType_Bool;
+use crate::chainblocksc::CBType_Float;
+use crate::chainblocksc::CBType_Int;
+use crate::chainblocksc::CBType_Seq;
+use crate::chainblocksc::CBType_String;
+use crate::chainblocksc::CBTypesInfo;
+use crate::chainblocksc::CBVar;
 use crate::chainblocksc::CBVarPayload;
 use crate::chainblocksc::CBVarPayload__bindgen_ty_1;
 use crate::chainblocksc::CBVarPayload__bindgen_ty_1__bindgen_ty_2;
-use crate::chainblocksc::CBContext;
-use crate::chainblocksc::CBType_Int;
-use crate::chainblocksc::CBType_Float;
-use crate::chainblocksc::CBType_String;
-use crate::chainblocksc::CBType_Seq;
-use crate::chainblocksc::CBType_Bool;
 use crate::core::Core;
-use std::ffi::CString;
-use std::ffi::CStr;
 use std::convert::TryFrom;
 use std::convert::TryInto;
+use std::ffi::CStr;
+use std::ffi::CString;
 
 pub type Context = CBContext;
 pub type Var = CBVar;
@@ -32,8 +32,7 @@ pub type InstanceData = CBInstanceData;
 /*
 CBTypeInfo & co
 */
-unsafe impl std::marker::Sync for CBTypeInfo {
-}
+unsafe impl std::marker::Sync for CBTypeInfo {}
 
 // Todo CBTypeInfo proper wrapper Type with helpers
 
@@ -41,10 +40,10 @@ pub type Types = Vec<Type>;
 
 impl From<&Types> for CBTypesInfo {
     fn from(types: &Types) -> Self {
-        CBTypesInfo{
+        CBTypesInfo {
             elements: types.as_ptr() as *mut CBTypeInfo,
             len: types.len() as u32,
-            cap: 0
+            cap: 0,
         }
     }
 }
@@ -52,10 +51,10 @@ impl From<&Types> for CBTypesInfo {
 fn internal_from_types(types: Types) -> CBTypesInfo {
     let len = types.len();
     let boxed = types.into_boxed_slice();
-    CBTypesInfo{
+    CBTypesInfo {
         elements: Box::into_raw(boxed) as *mut CBTypeInfo,
         len: len as u32,
-        cap: 0
+        cap: 0,
     }
 }
 
@@ -72,11 +71,10 @@ CBExposedTypeInfo & co
 pub struct ExposedInfo(CBExposedTypeInfo);
 
 impl ExposedInfo {
-    fn new(name: &str,
-           ctype: CBTypeInfo) -> Self {
+    fn new(name: &str, ctype: CBTypeInfo) -> Self {
         let cname = CString::new(name).unwrap();
         let chelp = core::ptr::null();
-        let res = CBExposedTypeInfo{
+        let res = CBExposedTypeInfo {
             exposedType: ctype,
             name: cname.into_raw(),
             help: chelp,
@@ -108,10 +106,10 @@ pub type ExposedTypes = Vec<ExposedInfo>;
 
 impl From<&ExposedTypes> for CBExposedTypesInfo {
     fn from(vec: &ExposedTypes) -> Self {
-        CBExposedTypesInfo{
+        CBExposedTypesInfo {
             elements: vec.as_ptr() as *mut CBExposedTypeInfo,
             len: vec.len() as u32,
-            cap: 0
+            cap: 0,
         }
     }
 }
@@ -122,27 +120,24 @@ CBParameterInfo & co
 pub struct ParameterInfo(CBParameterInfo);
 
 impl ParameterInfo {
-    fn new(name: &str,
-           types: Types) -> Self {
+    fn new(name: &str, types: Types) -> Self {
         let cname = CString::new(name).unwrap();
         let chelp = core::ptr::null();
-        let res = CBParameterInfo{
+        let res = CBParameterInfo {
             name: cname.into_raw() as *mut i8,
             help: chelp,
-            valueTypes: internal_from_types(types)
+            valueTypes: internal_from_types(types),
         };
         ParameterInfo(res)
     }
 
-    fn new1(name: &str,
-           help: &str,
-           types: Types) -> Self {
+    fn new1(name: &str, help: &str, types: Types) -> Self {
         let cname = CString::new(name).unwrap();
         let chelp = CString::new(help).unwrap();
-        let res = CBParameterInfo{
+        let res = CBParameterInfo {
             name: cname.into_raw() as *mut i8,
             help: chelp.into_raw() as *mut i8,
-            valueTypes: internal_from_types(types)
+            valueTypes: internal_from_types(types),
         };
         ParameterInfo(res)
     }
@@ -184,10 +179,10 @@ pub type Parameters = Vec<ParameterInfo>;
 
 impl From<&Parameters> for CBParametersInfo {
     fn from(vec: &Parameters) -> Self {
-        CBParametersInfo{
+        CBParametersInfo {
             elements: vec.as_ptr() as *mut CBParameterInfo,
             len: vec.len() as u32,
-            cap: 0
+            cap: 0,
         }
     }
 }
@@ -197,28 +192,29 @@ Static common type infos utility
 */
 pub mod common_type {
     use crate::chainblocksc::CBTypeInfo;
-    use crate::chainblocksc::CBTypesInfo;
-    use crate::chainblocksc::CBType_None;
+    use crate::chainblocksc::CBTypeInfo__bindgen_ty_1;
     use crate::chainblocksc::CBType_Any;
-    use crate::chainblocksc::CBType_String;
-    use crate::chainblocksc::CBType_Int;
-    use crate::chainblocksc::CBType_Float;
-    use crate::chainblocksc::CBType_Seq;
     use crate::chainblocksc::CBType_Block;
     use crate::chainblocksc::CBType_Bool;
     use crate::chainblocksc::CBType_Chain;
-    use crate::chainblocksc::CBTypeInfo__bindgen_ty_1;
+    use crate::chainblocksc::CBType_Float;
+    use crate::chainblocksc::CBType_Int;
+    use crate::chainblocksc::CBType_None;
+    use crate::chainblocksc::CBType_Path;
+    use crate::chainblocksc::CBType_Seq;
+    use crate::chainblocksc::CBType_String;
+    use crate::chainblocksc::CBTypesInfo;
 
     const fn base_info() -> CBTypeInfo {
-        CBTypeInfo{
+        CBTypeInfo {
             basicType: CBType_None,
-            __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
-                seqTypes: CBTypesInfo{
+            __bindgen_anon_1: CBTypeInfo__bindgen_ty_1 {
+                seqTypes: CBTypesInfo {
                     elements: core::ptr::null_mut(),
                     len: 0,
-                    cap: 0
-                }
-            }
+                    cap: 0,
+                },
+            },
         }
     }
 
@@ -231,7 +227,7 @@ pub mod common_type {
     pub static none: CBTypeInfo = make_none();
 
     macro_rules! cbtype {
-        ($fname:ident, $type:expr, $name:ident, $names:ident, $name_seq:ident) => {    
+        ($fname:ident, $type:expr, $name:ident, $names:ident, $name_seq:ident) => {
             const fn $fname() -> CBTypeInfo {
                 let mut res = base_info();
                 res.basicType = $type;
@@ -242,17 +238,17 @@ pub mod common_type {
 
             pub static $name_seq: &'static [CBTypeInfo] = &[$name];
 
-            pub static $names: CBTypeInfo = CBTypeInfo{
+            pub static $names: CBTypeInfo = CBTypeInfo {
                 basicType: CBType_Seq,
-                __bindgen_anon_1: CBTypeInfo__bindgen_ty_1{
-                    seqTypes: CBTypesInfo{
+                __bindgen_anon_1: CBTypeInfo__bindgen_ty_1 {
+                    seqTypes: CBTypesInfo {
                         elements: $name_seq.as_ptr() as *mut CBTypeInfo,
                         len: 1,
-                        cap: 0
-                    }
-                }
+                        cap: 0,
+                    },
+                },
             };
-        }
+        };
     }
 
     cbtype!(make_any, CBType_Any, any, anys, any_seq);
@@ -262,6 +258,7 @@ pub mod common_type {
     cbtype!(make_bool, CBType_Bool, bool, bools, bool_seq);
     cbtype!(make_block, CBType_Block, block, blocks, block_seq);
     cbtype!(make_chain, CBType_Chain, chain, chains, chain_seq);
+    cbtype!(make_path, CBType_Path, path, paths, path_seq);
 }
 
 /*
@@ -277,14 +274,14 @@ impl Drop for OwnedVar {
             CBType_Seq => unsafe {
                 let s = &self.0.payload.__bindgen_anon_1.seqValue as *const CBSeq as *mut CBSeq;
                 Core.seqFree.unwrap()(s);
-            }
+            },
             CBType_String => unsafe {
                 let p = self.0.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue as *mut i8;
                 let s = CString::from_raw(p);
                 drop(s);
-            }
+            },
             _ => {}
-        }       
+        }
     }
 }
 
@@ -298,7 +295,7 @@ impl From<()> for Var {
 impl From<()> for OwnedVar {
     #[inline(always)]
     fn from(_: ()) -> Self {
-       OwnedVar(Var::from(()))
+        OwnedVar(Var::from(()))
     }
 }
 
@@ -307,12 +304,10 @@ macro_rules! var_from {
         impl From<$type> for Var {
             #[inline(always)]
             fn from(v: $type) -> Self {
-                CBVar{
+                CBVar {
                     valueType: $cbtype,
-                    payload: CBVarPayload{
-                        __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                            $varfield: v
-                        }
+                    payload: CBVarPayload {
+                        __bindgen_anon_1: CBVarPayload__bindgen_ty_1 { $varfield: v },
                     },
                     ..Default::default()
                 }
@@ -325,7 +320,7 @@ macro_rules! var_from {
                 OwnedVar(Var::from(v))
             }
         }
-    }
+    };
 }
 
 var_from!(bool, boolValue, CBType_Bool);
@@ -335,15 +330,15 @@ var_from!(f64, floatValue, CBType_Float);
 impl From<CBString> for Var {
     #[inline(always)]
     fn from(v: CBString) -> Self {
-        CBVar{
+        CBVar {
             valueType: CBType_String,
-            payload: CBVarPayload{
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+            payload: CBVarPayload {
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: v,
-                        stackPosition: 0
-                    }
-                }
+                        stackPosition: 0,
+                    },
+                },
             },
             ..Default::default()
         }
@@ -355,15 +350,15 @@ impl From<&CStr> for OwnedVar {
     fn from(v: &CStr) -> Self {
         let s = v.to_str().unwrap();
         let cstring = CString::new(s).unwrap();
-        let res = CBVar{
+        let res = CBVar {
             valueType: CBType_String,
-            payload: CBVarPayload{
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+            payload: CBVarPayload {
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: cstring.into_raw(),
-                        stackPosition: 0
-                    }
-                }
+                        stackPosition: 0,
+                    },
+                },
             },
             ..Default::default()
         };
@@ -374,15 +369,15 @@ impl From<&CStr> for OwnedVar {
 impl From<&CStr> for Var {
     #[inline(always)]
     fn from(v: &CStr) -> Self {
-        let res = CBVar{
+        let res = CBVar {
             valueType: CBType_String,
-            payload: CBVarPayload{
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+            payload: CBVarPayload {
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: v.as_ptr(),
-                        stackPosition: 0
-                    }
-                }
+                        stackPosition: 0,
+                    },
+                },
             },
             ..Default::default()
         };
@@ -393,15 +388,15 @@ impl From<&CStr> for Var {
 impl From<&CString> for Var {
     #[inline(always)]
     fn from(v: &CString) -> Self {
-        CBVar{
+        CBVar {
             valueType: CBType_String,
-            payload: CBVarPayload{
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2{
+            payload: CBVarPayload {
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: v.as_ptr(),
-                        stackPosition: 0
-                    }
-                }
+                        stackPosition: 0,
+                    },
+                },
             },
             ..Default::default()
         }
@@ -428,12 +423,10 @@ impl From<Vec<Var>> for OwnedVar {
             for v in vec {
                 Core.seqPush.unwrap()(sptr, &v);
             }
-            let res = CBVar{
+            let res = CBVar {
                 valueType: CBType_Seq,
-                payload: CBVarPayload{
-                    __bindgen_anon_1: CBVarPayload__bindgen_ty_1{
-                        seqValue: cbseq
-                    }
+                payload: CBVarPayload {
+                    __bindgen_anon_1: CBVarPayload__bindgen_ty_1 { seqValue: cbseq },
                 },
                 ..Default::default()
             };
@@ -451,7 +444,8 @@ impl TryFrom<&Var> for std::string::String {
             Err("Expected String variable, but casting failed.")
         } else {
             unsafe {
-                let cstr = CStr::from_ptr(var.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue);
+                let cstr =
+                    CStr::from_ptr(var.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue);
                 Ok(std::string::String::from(cstr.to_str().unwrap()))
             }
         }
@@ -467,7 +461,8 @@ impl TryFrom<&Var> for CString {
             Err("Expected String variable, but casting failed.")
         } else {
             unsafe {
-                let cstr = CStr::from_ptr(var.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue);
+                let cstr =
+                    CStr::from_ptr(var.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue);
                 Ok(CString::from(cstr))
             }
         }
@@ -482,9 +477,7 @@ impl TryFrom<&Var> for i64 {
         if var.valueType != CBType_Int {
             Err("Expected Int variable, but casting failed.")
         } else {
-            unsafe {
-                Ok(var.payload.__bindgen_anon_1.intValue)
-            }
+            unsafe { Ok(var.payload.__bindgen_anon_1.intValue) }
         }
     }
 }
@@ -497,9 +490,7 @@ impl TryFrom<&Var> for f64 {
         if var.valueType != CBType_Float {
             Err("Expected Float variable, but casting failed.")
         } else {
-            unsafe {
-                Ok(var.payload.__bindgen_anon_1.floatValue)
-            }
+            unsafe { Ok(var.payload.__bindgen_anon_1.floatValue) }
         }
     }
 }
@@ -512,9 +503,7 @@ impl TryFrom<&Var> for bool {
         if var.valueType != CBType_Bool {
             Err("Expected Float variable, but casting failed.")
         } else {
-            unsafe {
-                Ok(var.payload.__bindgen_anon_1.boolValue)
-            }
+            unsafe { Ok(var.payload.__bindgen_anon_1.boolValue) }
         }
     }
 }

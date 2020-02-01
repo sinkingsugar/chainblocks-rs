@@ -93,6 +93,8 @@ pub static mut Core: CBCore = CBCore {
     setRootPath: None,
 };
 
+static mut init_done: bool = false;
+
 unsafe fn initInternal() {
     let exe = Library::open_self()
         .ok()
@@ -115,14 +117,18 @@ unsafe fn initInternal() {
             panic!("Failed to aquire chainblocks interface, version not compatible.");
         }
         Core = core;
-        log("chainblocks-rs attached!");   
+        log("chainblocks-rs attached!");
+
+        init_done = true;
     }
 }
 
 #[inline(always)]
 pub fn init() {
     unsafe {
-        initInternal();
+        if !init_done {
+            initInternal();
+        }
     }
 }
 
