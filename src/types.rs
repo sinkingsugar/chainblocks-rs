@@ -306,19 +306,6 @@ impl From<Vec<Var>> for ClonedVar {
     }
 }
 
-impl From<Vec<OwnedVar>> for ClonedVar {
-    fn from(v: Vec<OwnedVar>) -> Self {
-        let tmp = Var::from(&v);
-        let res = ClonedVar(Var::default());
-        unsafe {
-            let rv = &res.0 as *const CBVar as *mut CBVar;
-            let sv = &tmp as *const CBVar;
-            Core.cloneVar.unwrap()(rv, sv);
-        }
-        res
-    }
-}
-
 impl Drop for ClonedVar {
     #[inline(always)]
     fn drop(&mut self) {
@@ -326,47 +313,6 @@ impl Drop for ClonedVar {
             let rv = &self.0 as *const CBVar as *mut CBVar;
             Core.destroyVar.unwrap()(rv);
         }
-    }
-}
-
-#[repr(transparent)] // force it same size of original
-pub struct OwnedVar(pub Var);
-
-impl Drop for OwnedVar {
-    #[inline(always)]
-    fn drop(&mut self) {
-        match self.0.valueType {
-            CBType_Seq => unsafe {
-                let seq = self.0.payload.__bindgen_anon_1.seqValue;
-                for i in 0..seq.len {
-                    let elm = OwnedVar(*seq.elements.offset(i.try_into().unwrap()));
-                    drop(elm);
-                }
-                let seq_ptr =
-                    &self.0.payload.__bindgen_anon_1.seqValue as *const CBSeq as *mut CBSeq;
-                Core.seqFree.unwrap()(seq_ptr);
-            },
-            CBType_String => unsafe {
-                let p = self.0.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue as *mut i8;
-                let s = CString::from_raw(p);
-                drop(s);
-            },
-            _ => {}
-        }
-    }
-}
-
-impl From<()> for Var {
-    #[inline(always)]
-    fn from(_: ()) -> Self {
-        CBVar::default()
-    }
-}
-
-impl From<()> for OwnedVar {
-    #[inline(always)]
-    fn from(_: ()) -> Self {
-        OwnedVar(Var::from(()))
     }
 }
 
@@ -382,13 +328,6 @@ macro_rules! var_from {
                     },
                     ..Default::default()
                 }
-            }
-        }
-
-        impl From<$type> for OwnedVar {
-            #[inline(always)]
-            fn from(v: $type) -> Self {
-                OwnedVar(Var::from(v))
             }
         }
     };
@@ -413,34 +352,6 @@ impl From<CBString> for Var {
             },
             ..Default::default()
         }
-    }
-}
-
-impl From<&str> for OwnedVar {
-    #[inline(always)]
-    fn from(s: &str) -> Self {
-        let cstring = CString::new(s).unwrap();
-        let res = CBVar {
-            valueType: CBType_String,
-            payload: CBVarPayload {
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
-                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
-                        stringValue: cstring.into_raw(),
-                        stackPosition: 0,
-                    },
-                },
-            },
-            ..Default::default()
-        };
-        OwnedVar(res)
-    }
-}
-
-impl From<&CStr> for OwnedVar {
-    #[inline(always)]
-    fn from(v: &CStr) -> Self {
-        let s = v.to_str().unwrap();
-        OwnedVar::from(s)
     }
 }
 
@@ -489,47 +400,6 @@ impl From<Option<&CString>> for Var {
         } else {
             Var::from(v.unwrap())
         }
-    }
-}
-
-impl From<Vec<Var>> for OwnedVar {
-    #[inline(always)]
-    fn from(vals: Vec<Var>) -> Self {
-        unsafe {
-            let cbseq = CBSeq::default();
-            let sptr = &cbseq as *const CBSeq as *mut CBSeq;
-            for v in vals {
-                Core.seqPush.unwrap()(sptr, &v);
-            }
-            let res = CBVar {
-                valueType: CBType_Seq,
-                payload: CBVarPayload {
-                    __bindgen_anon_1: CBVarPayload__bindgen_ty_1 { seqValue: cbseq },
-                },
-                ..Default::default()
-            };
-            OwnedVar(res)
-        }
-    }
-}
-
-impl From<&Vec<OwnedVar>> for Var {
-    #[inline(always)]
-    fn from(v: &Vec<OwnedVar>) -> Self {
-        let res = CBVar {
-            valueType: CBType_Seq,
-            payload: CBVarPayload {
-                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
-                    seqValue: CBSeq {
-                        elements: v.as_ptr() as *mut CBVar,
-                        len: v.len() as u32,
-                        cap: 0,
-                    },
-                },
-            },
-            ..Default::default()
-        };
-        res
     }
 }
 

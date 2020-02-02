@@ -14,7 +14,6 @@ mod csv {
         use crate::types::common_type;
         use crate::types::ClonedVar;
         use crate::types::Context;
-        use crate::types::OwnedVar;
         use crate::types::ParameterInfo;
         use crate::types::Parameters;
         use crate::types::Type;
@@ -33,6 +32,11 @@ mod csv {
         // either all in one go or one record per iteration
         // from string variable or path (a file)
 
+        struct Row {
+            strs: Vec<CString>,
+            vars: Vec<Var>,
+        }
+
         struct CSVRead {
             input_types: Types,
             output_types: Types,
@@ -42,8 +46,9 @@ mod csv {
             looped: bool,
             reinit: bool,
             source: ClonedVar,
-            result: ClonedVar,
             records: Option<Box<dyn Iterator<Item = Result<StringRecord, Error>>>>,
+            rows: Vec<Row>,
+            slurp: Vec<Var>,
         }
 
         impl Default for CSVRead {
@@ -91,8 +96,9 @@ mod csv {
                     looped: false,
                     reinit: true,
                     source: ClonedVar(Var::default()),
-                    result: ClonedVar(Var::default()),
                     records: None,
+                    rows: Vec::<Row>::new(),
+                    slurp: Vec::<Var>::new()
                 }
             }
         }
@@ -159,32 +165,54 @@ mod csv {
                 if let Some(records) = self.records.as_mut() {
                     if self.iterating {
                         // a single seq of strings
-                        let mut res = Vec::<&str>::new();
+                        self.rows.clear();
+
                         if let Some(record) = records.next() {
                             if let Ok(data) = record {
                                 let it = data.iter();
+                                let mut row = Row {
+                                    strs: Vec::<CString>::new(),
+                                    vars: Vec::<Var>::new(),
+                                };
                                 for item in it {
-                                    res.push(item);
+                                    let s = CString::new(item).unwrap();
+                                    row.vars.push(Var::from(&s));
+                                    row.strs.push(s);
                                 }
+                                self.rows.push(row);
                             }
                         }
 
-                    //self.result = res.into();
+                        Var::from(&self.rows[0].vars)
                     } else {
-                        let mut res = Vec::<Vec<&str>>::new();
+                        self.rows.clear();
+                        self.slurp.clear();
+
                         for record in records {
                             if let Ok(data) = record {
-                                let mut row = Vec::<&str>::new();
                                 let it = data.iter();
+                                let mut row = Row {
+                                    strs: Vec::<CString>::new(),
+                                    vars: Vec::<Var>::new(),
+                                };
                                 for item in it {
-                                    row.push(item);
+                                    let s = CString::new(item).unwrap();
+                                    row.vars.push(Var::from(&s));
+                                    row.strs.push(s);
                                 }
-                                res.push(row);
+                                self.rows.push(row);
                             }
                         }
+
+                        for row in &self.rows {
+                            self.slurp.push(Var::from(&row.vars));
+                        }
+
+                        Var::from(&self.slurp)
                     }
+                } else {
+                    Var::default()
                 }
-                self.result.0
             }
         }
 
