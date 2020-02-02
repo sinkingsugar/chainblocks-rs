@@ -85,6 +85,7 @@ mod dummy_block {
     use crate::core::sleep;
     use crate::core::Core;
     use crate::types::common_type;
+    use crate::types::ClonedVar;
     use crate::types::Var;
     use std::ffi::CString;
 
@@ -170,6 +171,8 @@ mod dummy_block {
                 b.payload.__bindgen_anon_1.intValue
             );
         }
+
+        let v: ClonedVar = a.into();
 
         log("Hello chainblocks-rs");
     }

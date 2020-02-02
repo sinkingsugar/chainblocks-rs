@@ -11,7 +11,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("../chainblocks/include/chainblocks.h")
         .clang_arg("-I../chainblocks/deps/stb")
-        .clang_arg("-DNO_BITFIELDS")
+        .clang_arg("-DCB_NO_ANON")
         .derive_default(true)
         .generate()
         .expect("Unable to generate bindings");
