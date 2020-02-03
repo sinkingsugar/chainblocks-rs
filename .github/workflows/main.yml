@@ -17,7 +17,7 @@ jobs:
       - name: Build tester image
         run: |
           cd ..
-          docker build -f docker/Dockerfile -t chainblocks-test --build-arg USER_ID=`id -u` --build-arg GROUP_ID=`id -g` --build-arg JOB_ID=$CI_JOB_ID .
+          docker build -f chainblocks-rs/docker/Dockerfile -t chainblocks-test --build-arg USER_ID=`id -u` --build-arg GROUP_ID=`id -g` --build-arg JOB_ID=$CI_JOB_ID .
       - name: Test
         run: |
           docker run --rm -t --cap-add=SYS_PTRACE -u`id -u`:`id -g` chainblocks-test bash -c "cd chainblocks-rs && cargo test"
