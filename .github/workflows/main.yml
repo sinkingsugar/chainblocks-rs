@@ -8,8 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: cd .. && git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: cd ../chainblocks && git submodule update --init --recursive
+      - run: |
+          cd ..
+          git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
+      - run: |
+          cd ../chainblocks
+          git submodule update --init --recursive
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -24,8 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: cd .. && git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: cd ../chainblocks && git submodule update --init --recursive
+      - run: |
+          cd ..
+          git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
+      - run: |
+          cd ../chainblocks
+          git submodule update --init --recursive
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -40,8 +48,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: cd .. && git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: cd ../chainblocks && git submodule update --init --recursive
+      - run: |
+          cd ..
+          git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
+      - run: |
+          cd ../chainblocks
+          git submodule update --init --recursive
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -58,8 +70,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: cd .. && git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: cd ../chainblocks && git submodule update --init --recursive
+      - run: |
+          cd ..
+          git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
+      - run: |
+          cd ../chainblocks
+          git submodule update --init --recursive
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
