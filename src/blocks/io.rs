@@ -7,6 +7,7 @@ mod csv {
         use crate::chainblocksc::CBTypeInfo_Details_Path;
         use crate::chainblocksc::CBType_ContextVar;
         use crate::chainblocksc::CBType_Path;
+        use crate::chainblocksc::CBType_Seq;
         use crate::chainblocksc::CBTypesInfo;
         use crate::core::getRootPath;
         use crate::core::init;
@@ -39,6 +40,7 @@ mod csv {
 
         struct CSVRead {
             input_types: Types,
+            strings: Types,
             output_types: Types,
             buffer_types: Types,
             parameters: Parameters,
@@ -73,6 +75,7 @@ mod csv {
                 };
                 Self {
                     input_types: vec![common_type::none],
+                    strings: vec![common_type::strings],
                     output_types: vec![common_type::strings],
                     buffer_types: buffer_types,
                     parameters: vec![
@@ -98,7 +101,7 @@ mod csv {
                     source: ClonedVar(Var::default()),
                     records: None,
                     rows: Vec::<Row>::new(),
-                    slurp: Vec::<Var>::new()
+                    slurp: Vec::<Var>::new(),
                 }
             }
         }
@@ -125,7 +128,16 @@ mod csv {
                 &self.input_types
             }
             fn outputTypes(&mut self) -> &Types {
-                // this depends on self.iterating!
+                if self.iterating {
+                    self.output_types = vec![common_type::strings];
+                } else {
+                    self.output_types = vec![Type {
+                        basicType: CBType_Seq,
+                        details: CBTypeInfo_Details {
+                            seqTypes: (&self.strings).into(),
+                        },
+                    }];
+                }
                 &self.output_types
             }
             fn parameters(&mut self) -> Option<&Parameters> {
@@ -148,6 +160,16 @@ mod csv {
                     }
                 };
             }
+            fn getParam(&mut self, idx: i32) -> Var {
+                match idx {
+                    0 => self.source.0,
+                    1 => Var::from(self.iterating),
+                    2 => Var::from(self.looped),
+                    _ => {
+                        unimplemented!();
+                    }
+                }
+            }
             fn activate(&mut self, _context: &Context, _input: &Var) -> Var {
                 if self.reinit {
                     self.records = None;
@@ -162,11 +184,11 @@ mod csv {
                     self.reinit = false;
                 }
 
+                self.rows.clear();
+                self.slurp.clear();
                 if let Some(records) = self.records.as_mut() {
                     if self.iterating {
                         // a single seq of strings
-                        self.rows.clear();
-
                         if let Some(record) = records.next() {
                             if let Ok(data) = record {
                                 let it = data.iter();
@@ -180,14 +202,20 @@ mod csv {
                                     row.strs.push(s);
                                 }
                                 self.rows.push(row);
+                                Var::from(&self.rows[0].vars)
+                            } else {
+                                Var::from(&self.slurp)
                             }
+                        } else {
+                            if self.looped {
+                                // no optimal at all..
+                                // should use seek
+                                self.reinit = true;
+                            }
+                            Var::from(&self.slurp)
                         }
-
-                        Var::from(&self.rows[0].vars)
                     } else {
-                        self.rows.clear();
-                        self.slurp.clear();
-
+                        // parses the whole file
                         for record in records {
                             if let Ok(data) = record {
                                 let it = data.iter();
@@ -211,7 +239,7 @@ mod csv {
                         Var::from(&self.slurp)
                     }
                 } else {
-                    Var::default()
+                    Var::from(&self.slurp)
                 }
             }
         }
