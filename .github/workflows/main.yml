@@ -8,81 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
+      - name: Fetch chainblocks core
+        run: |
           cd ..
           git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: |
-          cd ../chainblocks
+          cd chainblocks
           git submodule update --init --recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-
-  test:
-    name: Test Suite
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          cd ..
-          git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: |
-          cd ../chainblocks
-          git submodule update --init --recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          cd ..
-          git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: |
-          cd ../chainblocks
-          git submodule update --init --recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          cd ..
-          git clone --branch ${GITHUB_REF##*/} https://github.com/sinkingsugar/chainblocks.git
-      - run: |
-          cd ../chainblocks
-          git submodule update --init --recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+      - name: Build tester image
+        run: |
+          docker build -f docker/Dockerfile -t chainblocks-test --build-arg USER_ID=`id -u` --build-arg GROUP_ID=`id -g` --build-arg JOB_ID=$CI_JOB_ID .
+      - name: Test
+        run: |
+          docker run --rm -t --cap-add=SYS_PTRACE -u`id -u`:`id -g` chainblocks-test bash -c "cargo test"
