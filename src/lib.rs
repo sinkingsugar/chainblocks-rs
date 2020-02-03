@@ -160,7 +160,7 @@ mod dummy_block {
         macroTest();
 
         let a = Var::from(10);
-        let mut b = Var::from(());
+        let mut b = Var::from(true);
         cloneVar(&mut b, &a);
         unsafe {
             assert_eq!(a.valueType, CBType_Int);
