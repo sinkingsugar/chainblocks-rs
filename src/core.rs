@@ -1,3 +1,6 @@
+use crate::chainblocksc::CBVar;
+use crate::chainblocksc::CBContext;
+use crate::chainblocksc::CBString;
 use crate::chainblocksc::CBCore;
 use crate::chainblocksc::chainblocksInterface;
 use crate::chainblocksc::CBlockPtr;
@@ -182,3 +185,20 @@ pub fn cloneVar(dst: &mut Var, src: &Var) {
         Core.cloneVar.unwrap()(dst, src);
     }
 }
+
+pub fn findMutVariable(context: &CBContext, name: CBString) -> &mut CBVar {
+    unsafe {
+        let ctx = context as *const CBContext as *mut CBContext;
+        let cbptr = Core.findVariable.unwrap()(ctx, name);
+        cbptr.as_mut().unwrap()
+    }
+}
+
+pub fn findVariable(context: &CBContext, name: CBString) -> &CBVar {
+    unsafe {
+        let ctx = context as *const CBContext as *mut CBContext;
+        let cbptr = Core.findVariable.unwrap()(ctx, name);
+        cbptr.as_mut().unwrap()
+    }
+}
+

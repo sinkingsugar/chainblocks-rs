@@ -8,6 +8,7 @@ use crate::chainblocksc::CBSeq;
 use crate::chainblocksc::CBString;
 use crate::chainblocksc::CBTypeInfo;
 use crate::chainblocksc::CBType_Bool;
+use crate::chainblocksc::CBType_ContextVar;
 use crate::chainblocksc::CBType_Float;
 use crate::chainblocksc::CBType_Int;
 use crate::chainblocksc::CBType_Path;
@@ -423,13 +424,32 @@ impl From<&Vec<Var>> for Var {
     }
 }
 
+impl TryFrom<&Var> for CBString {
+    type Error = &'static str;
+
+    #[inline(always)]
+    fn try_from(var: &Var) -> Result<Self, Self::Error> {
+        if var.valueType != CBType_String
+            && var.valueType != CBType_Path
+            && var.valueType != CBType_ContextVar
+        {
+            Err("Expected String, Path or ContextVar variable, but casting failed.")
+        } else {
+            unsafe { Ok(var.payload.__bindgen_anon_1.__bindgen_anon_2.stringValue) }
+        }
+    }
+}
+
 impl TryFrom<&Var> for std::string::String {
     type Error = &'static str;
 
     #[inline(always)]
     fn try_from(var: &Var) -> Result<Self, Self::Error> {
-        if var.valueType != CBType_String && var.valueType != CBType_Path {
-            Err("Expected String or Path variable, but casting failed.")
+        if var.valueType != CBType_String
+            && var.valueType != CBType_Path
+            && var.valueType != CBType_ContextVar
+        {
+            Err("Expected String, Path or ContextVar variable, but casting failed.")
         } else {
             unsafe {
                 let cstr =
@@ -445,8 +465,11 @@ impl TryFrom<&Var> for CString {
 
     #[inline(always)]
     fn try_from(var: &Var) -> Result<Self, Self::Error> {
-        if var.valueType != CBType_String && var.valueType != CBType_Path {
-            Err("Expected String or Path variable, but casting failed.")
+        if var.valueType != CBType_String
+            && var.valueType != CBType_Path
+            && var.valueType != CBType_ContextVar
+        {
+            Err("Expected String, Path or ContextVar variable, but casting failed.")
         } else {
             unsafe {
                 let cstr =
@@ -462,8 +485,11 @@ impl TryFrom<&Var> for &[u8] {
 
     #[inline(always)]
     fn try_from(var: &Var) -> Result<Self, Self::Error> {
-        if var.valueType != CBType_String && var.valueType != CBType_Path {
-            Err("Expected String or Path variable, but casting failed.")
+        if var.valueType != CBType_String
+            && var.valueType != CBType_Path
+            && var.valueType != CBType_ContextVar
+        {
+            Err("Expected String, Path or ContextVar variable, but casting failed.")
         } else {
             unsafe {
                 let cstr =

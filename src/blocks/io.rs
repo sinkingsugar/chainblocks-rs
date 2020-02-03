@@ -8,7 +8,9 @@ mod csv {
         use crate::chainblocksc::CBType_ContextVar;
         use crate::chainblocksc::CBType_Path;
         use crate::chainblocksc::CBType_Seq;
+        use crate::chainblocksc::CBType_String;
         use crate::chainblocksc::CBTypesInfo;
+        use crate::core::findVariable;
         use crate::core::getRootPath;
         use crate::core::init;
         use crate::core::registerBlock;
@@ -24,8 +26,10 @@ mod csv {
         use core::cell::Cell;
         use csv::Error;
         use csv::Reader;
+        use csv::ReaderBuilder;
         use csv::StringRecord;
         use std::convert::TryFrom;
+        use std::convert::TryInto;
         use std::ffi::CString;
         use std::io::Read;
         use std::path::Path;
@@ -51,6 +55,7 @@ mod csv {
             records: Option<Box<dyn Iterator<Item = Result<StringRecord, Error>>>>,
             rows: Vec<Row>,
             slurp: Vec<Var>,
+            headers: bool,
         }
 
         impl Default for CSVRead {
@@ -94,6 +99,11 @@ mod csv {
                             "When Iterate is selected, if Looped is also selected, the iteration will restart from the first record rather than output a empty sequence.",
                             vec![common_type::bool],
                         )),
+                            ParameterInfo::from((
+                            "Headers",
+                            "Assumes that first row is a headers row, skipping it.",
+                            vec![common_type::bool],
+                        )),
                     ],
                     iterating: false,
                     looped: false,
@@ -102,6 +112,7 @@ mod csv {
                     records: None,
                     rows: Vec::<Row>::new(),
                     slurp: Vec::<Var>::new(),
+                    headers: true,
                 }
             }
         }
@@ -110,12 +121,17 @@ mod csv {
             fn load_file_reader(&mut self, path: &str) {
                 let root_path = Path::new(getRootPath());
                 let fullpath = root_path.join(path);
-                let reader = Reader::from_path(fullpath).unwrap();
+                let reader = ReaderBuilder::new()
+                    .has_headers(self.headers)
+                    .from_path(fullpath)
+                    .unwrap();
                 self.records = Some(Box::new(reader.into_records()));
             }
 
             fn load_str_reader(&mut self, text: &'static [u8]) {
-                let reader = Reader::from_reader(text);
+                let reader = ReaderBuilder::new()
+                    .has_headers(self.headers)
+                    .from_reader(text);
                 self.records = Some(Box::new(reader.into_records()));
             }
         }
@@ -146,14 +162,17 @@ mod csv {
             fn setParam(&mut self, idx: i32, value: &Var) {
                 match idx {
                     0 => {
-                        self.source = ClonedVar::from(value);
+                        self.source = value.into();
                         self.reinit = true;
                     }
                     1 => {
-                        self.iterating = bool::try_from(value).unwrap();
+                        self.iterating = value.try_into().unwrap();
                     }
                     2 => {
-                        self.looped = bool::try_from(value).unwrap();
+                        self.looped = value.try_into().unwrap();
+                    }
+                    3 => {
+                        self.headers = value.try_into().unwrap();
                     }
                     _ => {
                         unimplemented!();
@@ -165,12 +184,13 @@ mod csv {
                     0 => self.source.0,
                     1 => Var::from(self.iterating),
                     2 => Var::from(self.looped),
+                    3 => Var::from(self.headers),
                     _ => {
                         unimplemented!();
                     }
                 }
             }
-            fn activate(&mut self, _context: &Context, _input: &Var) -> Var {
+            fn activate(&mut self, context: &Context, _input: &Var) -> Var {
                 if self.reinit {
                     self.records = None;
                     match self.source.0.valueType {
@@ -178,6 +198,20 @@ mod csv {
                             let vcpath = CString::try_from(&self.source.0).unwrap();
                             let vpath = vcpath.to_str().unwrap();
                             self.load_file_reader(vpath);
+                        }
+                        CBType_ContextVar => {
+                            let var = findVariable(context, (&self.source.0).try_into().unwrap());
+                            match var.valueType {
+                                CBType_Path => {
+                                    let vcpath = CString::try_from(var).unwrap();
+                                    let vpath = vcpath.to_str().unwrap();
+                                    self.load_file_reader(vpath);
+                                }
+                                CBType_String => {
+                                    self.load_str_reader(var.try_into().unwrap());
+                                }
+                                _ => panic!("Wrong Source type (variable)"),
+                            }
                         }
                         _ => panic!("Wrong Source type."),
                     };
