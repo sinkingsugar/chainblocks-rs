@@ -62,6 +62,18 @@ macro_rules! blocks {
     };
 }
 
+#[cfg(feature = "cb_static")]
+mod cb_static {
+    #[link(name = "cb_static", kind = "static")]
+    extern {}
+}
+
+#[cfg(feature = "cb_dynamic")]
+mod cb_static {
+    #[link(name = "cb_shared", kind = "dylib")]
+    extern {}
+}
+
 // --features "dummy"
 #[cfg(any(test, feature = "dummy"))]
 mod dummy_block {

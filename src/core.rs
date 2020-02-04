@@ -1,14 +1,14 @@
-use crate::chainblocksc::CBVar;
-use crate::chainblocksc::CBContext;
-use crate::chainblocksc::CBString;
-use crate::chainblocksc::CBCore;
-use crate::chainblocksc::chainblocksInterface;
-use crate::chainblocksc::CBlockPtr;
-use crate::block::Block;
-use crate::types::Var;
 use crate::block::cblock_construct;
-use std::ffi::CString;
+use crate::block::Block;
+use crate::chainblocksc::chainblocksInterface;
+use crate::chainblocksc::CBContext;
+use crate::chainblocksc::CBCore;
+use crate::chainblocksc::CBString;
+use crate::chainblocksc::CBVar;
+use crate::chainblocksc::CBlockPtr;
+use crate::types::Var;
 use std::ffi::CStr;
+use std::ffi::CString;
 
 const ABI_VERSION: u32 = 0x20200101;
 
@@ -105,11 +105,11 @@ pub static mut Core: CBCore = CBCore {
 static mut init_done: bool = false;
 
 unsafe fn initInternal() {
-    let exe = Library::open_self()
-        .ok()
-        .unwrap();
+    let exe = Library::open_self().ok().unwrap();
 
-    let exefun = exe.symbol::<unsafe extern "C" fn(abi_version: u32)->CBCore>("chainblocksInterface").ok();
+    let exefun = exe
+        .symbol::<unsafe extern "C" fn(abi_version: u32) -> CBCore>("chainblocksInterface")
+        .ok();
     if exefun.is_some() {
         let fun = exefun.unwrap();
         let core = fun(ABI_VERSION);
@@ -120,7 +120,9 @@ unsafe fn initInternal() {
         log("chainblocks-rs attached!");
     } else {
         let lib = try_load_dlls().unwrap();
-        let fun = lib.symbol::<unsafe extern "C" fn(abi_version: u32)->CBCore>("chainblocksInterface").unwrap();
+        let fun = lib
+            .symbol::<unsafe extern "C" fn(abi_version: u32) -> CBCore>("chainblocksInterface")
+            .unwrap();
         let core = fun(ABI_VERSION);
         if core.registerBlock.is_none() {
             panic!("Failed to aquire chainblocks interface, version not compatible.");
@@ -160,18 +162,14 @@ pub fn sleep(seconds: f64) {
 pub fn registerBlock<T: Default + Block>(name: &str) {
     let blkname = CString::new(name).unwrap();
     unsafe {
-        Core.registerBlock
-            .unwrap()(
-                blkname.as_ptr(),
-                Some(cblock_construct::<T>));
+        Core.registerBlock.unwrap()(blkname.as_ptr(), Some(cblock_construct::<T>));
     }
 }
 
 #[inline(always)]
 pub fn getRootPath() -> &'static str {
     unsafe {
-        CStr::from_ptr(
-            Core.getRootPath.unwrap()())
+        CStr::from_ptr(Core.getRootPath.unwrap()())
             .to_str()
             .unwrap()
     }
@@ -180,9 +178,7 @@ pub fn getRootPath() -> &'static str {
 #[inline(always)]
 pub fn createBlock(name: &str) -> CBlockPtr {
     let cname = CString::new(name).unwrap();
-    unsafe {
-        Core.createBlock.unwrap()(cname.as_ptr())
-    }
+    unsafe { Core.createBlock.unwrap()(cname.as_ptr()) }
 }
 
 #[inline(always)]
@@ -207,4 +203,3 @@ pub fn findVariable(context: &CBContext, name: CBString) -> &CBVar {
         cbptr.as_mut().unwrap()
     }
 }
-

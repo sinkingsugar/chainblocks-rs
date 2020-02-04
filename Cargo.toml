@@ -19,3 +19,5 @@ bindgen = "0.51.1"
 default = []
 dummy = []
 blocks = ["csv"]
+cb_static = []
+cb_dynamic = []
