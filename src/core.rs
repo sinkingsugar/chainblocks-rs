@@ -16,11 +16,17 @@ extern crate dlopen;
 use dlopen::symbor::Library;
 
 fn try_load_dlls() -> Option<Library> {
-    let macLib = Library::open("libcb.dylib").ok();
-    if macLib.is_some() {
-        return macLib;
+    if let Ok(lib) = Library::open("libcb.dylib") {
+        Some(lib)
+    } else if let Ok(lib) = Library::open("libcb_shared.dylib") {
+        Some(lib)
+    } else if let Ok(lib) = Library::open("libcb.so") {
+        Some(lib)
+    } else if let Ok(lib) = Library::open("libcb_shared.so") {
+        Some(lib)
+    } else {
+        None
     }
-    return None;
 }
 
 pub static mut Core: CBCore = CBCore {

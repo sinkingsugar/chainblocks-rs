@@ -45,7 +45,7 @@ ninja cbl && ninja cb_shared
 ./cbl ../src/tests/kdtree.clj
 
 mkdir -p ../../chainblocks-rs/target/debug
-cp libcb.so ../../chainblocks-rs/target/debug/
+cp libcb_shared.so ../../chainblocks-rs/target/debug/
 
 cd ../../chainblocks-rs/
 
