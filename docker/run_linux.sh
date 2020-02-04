@@ -31,7 +31,7 @@ cd ../../../
 mkdir build
 cd build
 cmake -G Ninja -DBUILD_CORE_ONLY=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
-ninja cbl && ninja cb
+ninja cbl && ninja cb_shared
 ./cbl ../src/tests/general.clj
 ./cbl ../src/tests/variables.clj
 ./cbl ../src/tests/subchains.clj
