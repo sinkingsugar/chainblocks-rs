@@ -32,7 +32,7 @@ pub trait Block {
     fn exposedVariables(&mut self) -> Option<&ExposedTypes> {
         None
     }
-    fn consumedVariables(&mut self) -> Option<&ExposedTypes> {
+    fn requiredVariables(&mut self) -> Option<&ExposedTypes> {
         None
     }
 
@@ -130,10 +130,10 @@ unsafe extern "C" fn cblock_exposedVariables<T: Block>(arg1: *mut CBlock) -> CBE
     }
 }
 
-unsafe extern "C" fn cblock_consumedVariables<T: Block>(arg1: *mut CBlock) -> CBExposedTypesInfo {
+unsafe extern "C" fn cblock_requiredVariables<T: Block>(arg1: *mut CBlock) -> CBExposedTypesInfo {
     let blk = arg1 as *mut BlockWrapper<T>;
-    if let Some(consumed) = (*blk).block.consumedVariables() {
-        CBExposedTypesInfo::from(consumed)
+    if let Some(required) = (*blk).block.requiredVariables() {
+        CBExposedTypesInfo::from(required)
     } else {
         CBExposedTypesInfo::default()
     }
@@ -184,7 +184,7 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
             setup: Some(cblock_setup::<T>),
             destroy: Some(cblock_destroy::<T>),
             exposedVariables: Some(cblock_exposedVariables::<T>),
-            consumedVariables: Some(cblock_consumedVariables::<T>),
+            requiredVariables: Some(cblock_requiredVariables::<T>),
             compose: if T::canCompose() {
                 Some(cblock_compose::<T>)
             } else {
