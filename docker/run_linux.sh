@@ -30,8 +30,8 @@ cd ../../../
 
 mkdir build
 cd build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=$1 ..
-ninja cbl
+cmake -G Ninja -DBUILD_CORE_ONLY=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+ninja cbl && ninja cb
 ./cbl ../src/tests/general.clj
 ./cbl ../src/tests/variables.clj
 ./cbl ../src/tests/subchains.clj
@@ -43,6 +43,9 @@ ninja cbl
 ./cbl ../src/tests/snappy.clj
 ./cbl ../src/tests/stack.clj
 ./cbl ../src/tests/kdtree.clj
+
+mkdir -p ../../chainblocks-rs/target/debug
+cp libcb.so ../../chainblocks-rs/target/debug/
 
 cd ../../chainblocks-rs/
 
