@@ -204,3 +204,17 @@ pub fn referenceVariable(context: &CBContext, name: CBString) -> &CBVar {
         cbptr.as_mut().unwrap()
     }
 }
+
+pub fn releaseMutVariable(var: &mut CBVar) {
+     unsafe {
+        let v = var as *mut CBVar;
+        Core.releaseVariable.unwrap()(v);
+    }
+}
+
+pub fn releaseVariable(var: &CBVar) {
+    unsafe {
+        let v = var as *const CBVar as *mut CBVar;
+        Core.releaseVariable.unwrap()(v);
+    }
+}

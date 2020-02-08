@@ -11,6 +11,7 @@ mod csv {
         use crate::chainblocksc::CBType_String;
         use crate::chainblocksc::CBTypesInfo;
         use crate::core::referenceVariable;
+        use crate::core::releaseVariable;
         use crate::core::getRootPath;
         use crate::core::init;
         use crate::core::registerBlock;
@@ -212,6 +213,7 @@ mod csv {
                                 }
                                 _ => panic!("Wrong Source type (variable)"),
                             }
+                            releaseVariable(var);
                         }
                         _ => panic!("Wrong Source type."),
                     };

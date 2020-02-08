@@ -47,8 +47,56 @@ macro_rules! var {
 }
 
 macro_rules! blocks {
+    (@block Set :Name .$var:ident) => { blocks!(@block Set (stringify!($var))); };
     (@block Set .$var:ident) => { blocks!(@block Set (stringify!($var))); };
 
+    // (BlockName)
+    (@block $block:ident) => {{
+        let blk = $crate::core::createBlock(stringify!($block));
+        unsafe {
+            (*blk).setup.unwrap()(blk);
+        }
+            blk
+    }};
+
+    // (BlockName :ParamName ParamVar ...)
+    (@block $block:ident $(:$pname:tt $param:tt) *) => {{
+        let blkname = stringify!($block);
+        let blk = $crate::core::createBlock(blkname);
+        unsafe {
+            (*blk).setup.unwrap()(blk);
+        }
+        let cparams: $crate::chainblocksc::CBParametersInfo;
+        unsafe {
+            cparams = (*blk).parameters.unwrap()(blk);
+        }
+        let params: &[$crate::chainblocksc::CBParameterInfo] = cparams.into();
+        $(
+            {
+                let param = stringify!($pname);
+                let mut piter = params.iter();
+                let idx = piter.position(|&x| -> bool {
+                    unsafe {
+                        let cname = x.name as *const i8 as *mut i8;
+                        let cstr =  std::ffi::CString::from_raw(cname);
+                        let s = cstr.to_str();
+                        s.is_err() || s.unwrap() == param
+                    }
+                });
+                if let Some(pidx) = idx {
+                    let pvar = var!($param);
+                    unsafe {
+                        (*blk).setParam.unwrap()(blk, pidx as i32, pvar.0);
+                    }
+                } else {
+                    panic!("Parameter not found: {} for block: {}!", param, blkname);
+                }
+            }
+        ) *
+            blk
+     }};
+
+    // (BlockName ParamVar ...)
     (@block $block:ident $($param:tt) *) => {{
         let blk = $crate::core::createBlock(stringify!($block));
         unsafe {
@@ -167,11 +215,12 @@ mod dummy_block {
     fn macroTest() {
         blocks!((10)
                 (Log)
-                (Set .x)
+                (Set :Name .x)
                 (Repeat
                  (-->
                   (Msg "repeating...")
-                  (Log))));
+                  (Log)))
+                (Msg :Message "Done"));
     }
 
     #[test]

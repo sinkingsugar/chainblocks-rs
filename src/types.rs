@@ -192,6 +192,10 @@ impl From<&Parameters> for CBParametersInfo {
     }
 }
 
+impl From<CBParametersInfo> for &[CBParameterInfo] {
+    fn from(_: CBParametersInfo) -> Self { unimplemented!() }
+}
+
 /*
 Static common type infos utility
 */
