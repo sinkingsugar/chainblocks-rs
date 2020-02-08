@@ -206,6 +206,7 @@ mod dummy_block {
     #[ctor]
     fn registerDummy() {
         init();
+
         let blkname = CString::new("Dummy").expect("CString failed...");
         unsafe {
             Core.registerBlock.unwrap()(blkname.as_ptr(), Some(cblock_construct::<DummyBlock>));
@@ -225,6 +226,8 @@ mod dummy_block {
 
     #[test]
     fn instanciate() {
+        init();
+
         let mut blk = create::<DummyBlock>();
         assert_eq!("Dummy".to_string(), blk.block.name());
 
@@ -234,8 +237,6 @@ mod dummy_block {
             (*cblk).setup.unwrap()(cblk);
             (*cblk).destroy.unwrap()(cblk);
         }
-
-        macroTest();
 
         let a = Var::from(10);
         let mut b = Var::from(true);
