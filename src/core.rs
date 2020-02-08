@@ -37,7 +37,8 @@ pub static mut Core: CBCore = CBCore {
     unregisterRunLoopCallback: None,
     registerExitCallback: None,
     unregisterExitCallback: None,
-    findVariable: None,
+    referenceVariable: None,
+    releaseVariable: None,
     throwException: None,
     suspend: None,
     cloneVar: None,
@@ -188,18 +189,18 @@ pub fn cloneVar(dst: &mut Var, src: &Var) {
     }
 }
 
-pub fn findMutVariable(context: &CBContext, name: CBString) -> &mut CBVar {
+pub fn referenceMutVariable(context: &CBContext, name: CBString) -> &mut CBVar {
     unsafe {
         let ctx = context as *const CBContext as *mut CBContext;
-        let cbptr = Core.findVariable.unwrap()(ctx, name);
+        let cbptr = Core.referenceVariable.unwrap()(ctx, name);
         cbptr.as_mut().unwrap()
     }
 }
 
-pub fn findVariable(context: &CBContext, name: CBString) -> &CBVar {
+pub fn referenceVariable(context: &CBContext, name: CBString) -> &CBVar {
     unsafe {
         let ctx = context as *const CBContext as *mut CBContext;
-        let cbptr = Core.findVariable.unwrap()(ctx, name);
+        let cbptr = Core.referenceVariable.unwrap()(ctx, name);
         cbptr.as_mut().unwrap()
     }
 }

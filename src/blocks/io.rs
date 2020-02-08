@@ -10,7 +10,7 @@ mod csv {
         use crate::chainblocksc::CBType_Seq;
         use crate::chainblocksc::CBType_String;
         use crate::chainblocksc::CBTypesInfo;
-        use crate::core::findVariable;
+        use crate::core::referenceVariable;
         use crate::core::getRootPath;
         use crate::core::init;
         use crate::core::registerBlock;
@@ -200,7 +200,7 @@ mod csv {
                             self.load_file_reader(vpath);
                         }
                         CBType_ContextVar => {
-                            let var = findVariable(context, (&self.source.0).try_into().unwrap());
+                            let var = referenceVariable(context, (&self.source.0).try_into().unwrap());
                             match var.valueType {
                                 CBType_Path => {
                                     let vcpath = CString::try_from(var).unwrap();

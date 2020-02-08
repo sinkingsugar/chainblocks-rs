@@ -1,3 +1,6 @@
+use crate::chainblocksc::CBlockPtr;
+use crate::chainblocksc::CBlock;
+use crate::chainblocksc::CBlocks;
 use crate::chainblocksc::CBContext;
 use crate::chainblocksc::CBExposedTypeInfo;
 use crate::chainblocksc::CBExposedTypesInfo;
@@ -270,6 +273,9 @@ CBVar utility
 #[repr(transparent)] // force it same size of original
 pub struct ClonedVar(pub Var);
 
+#[repr(transparent)] // force it same size of original
+pub struct WrappedVar(pub Var); // used in DSL macro, ignore it
+
 impl From<Var> for ClonedVar {
     fn from(v: Var) -> Self {
         let res = ClonedVar(Var::default());
@@ -338,6 +344,21 @@ var_from!(bool, boolValue, CBType_Bool);
 var_from!(i64, intValue, CBType_Int);
 var_from!(f64, floatValue, CBType_Float);
 
+impl From<CBlockPtr> for Var {
+     #[inline(always)]
+    fn from(v: CBlockPtr) -> Self {
+        CBVar {
+            valueType: CBType_String,
+            payload: CBVarPayload {
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
+                    blockValue: v
+                },
+            },
+            ..Default::default()
+        }
+    }
+}
+
 impl From<CBString> for Var {
     #[inline(always)]
     fn from(v: CBString) -> Self {
@@ -353,6 +374,25 @@ impl From<CBString> for Var {
             },
             ..Default::default()
         }
+    }
+}
+
+impl From<&'static str> for Var {
+    #[inline(always)]
+    fn from(v: &'static str) -> Self {
+        let res = CBVar {
+            valueType: CBType_String,
+            payload: CBVarPayload {
+                __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
+                    __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
+                        stringValue: v.as_ptr() as *const i8,
+                        stackPosition: 0,
+                    },
+                },
+            },
+            ..Default::default()
+        };
+        res
     }
 }
 

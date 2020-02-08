@@ -2,6 +2,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(unused_imports)]
+#![allow(unused_macros)]
 #![allow(dead_code)]
 #![allow(improper_ctypes)]
 
@@ -32,50 +33,65 @@ use std::ffi::CString;
 // cargo +nightly rustc --profile=check -- -Zunstable-options --pretty=expanded
 
 macro_rules! var {
-    ((--> $($param:tt) *)) => { Var::from(blocks!($($param) *)) };
-    ($vexp:expr) => { Var::from($vexp) }
+    ((--> $($param:tt) *)) => {{
+        let blks = blocks!($($param) *);
+        let mut vblks = Vec::<$crate::types::Var>::new();
+        for blk in blks {
+            vblks.push($crate::types::Var::from(blk));
+        }
+        // this is sad, we do a double copy cos set param will copy too
+        // but for now it's the easiest
+        $crate::types::ClonedVar::from($crate::types::Var::from(&vblks))
+    }};
+    ($vexp:expr) => { $crate::types::WrappedVar($crate::types::Var::from($vexp)) }
 }
 
 macro_rules! blocks {
-    ($(($block:ident $($param:tt) *)) *) => {
-        {
-            let mut x = Vec::<$crate::chainblocksc::CBlockRef>::new();
-            $(
-                {
-                    let blk = $crate::core::createBlock(stringify!($block));
-                    unsafe {
-                        (*blk).setup.unwrap()(blk);
-                    }
-                    let mut pidx: i32 = 0;
-                    $(
-                        {
-                            let pvar = var!($param);
-                            (*blk).setParam.unwrap()(blk, pidx, pvar);
-                            pidx += 1;
-                        }
-                    ) *
-                        x.push(blk);
-                }
-            ) *
-            x
+    (@block Set .$var:ident) => { blocks!(@block Set (stringify!($var))); };
+
+    (@block $block:ident $($param:tt) *) => {{
+        let blk = $crate::core::createBlock(stringify!($block));
+        unsafe {
+            (*blk).setup.unwrap()(blk);
         }
-    };
+        let mut _pidx: i32 = 0;
+        $(
+            {
+                let pvar = var!($param);
+                unsafe {
+                    (*blk).setParam.unwrap()(blk, _pidx, pvar.0);
+                }
+                _pidx += 1;
+            }
+        ) *
+            blk
+    }};
+
+    (@block $a:expr) => { blocks!(@block Const $a); };
+
+    ($(($block:tt $($param:tt) *)) *) => {{
+        let mut blks = Vec::<$crate::chainblocksc::CBlockPtr>::new();
+        $(
+            blks.push(blocks!(@block $block $($param) *));
+        ) *
+            blks
+    }};
 }
 
 #[cfg(feature = "cb_static")]
 mod cb_static {
     #[link(name = "cb_static", kind = "static")]
-    extern {}
+    extern "C" {}
 }
 
 #[cfg(feature = "cb_dynamic")]
 mod cb_static {
     #[link(name = "cb_shared", kind = "dylib")]
-    extern {}
+    extern "C" {}
 }
 
 // --features "dummy"
-#[cfg(any(test, feature = "dummy"))]
+// #[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
 
@@ -149,12 +165,13 @@ mod dummy_block {
     }
 
     fn macroTest() {
-        // let blks =
-        //     blocks!((Const 10)
-        //             (Log)
-        //             (Repeat
-        //              (-->
-        //               (Msg "repeating..."))));
+        blocks!((10)
+                (Log)
+                (Set .x)
+                (Repeat
+                 (-->
+                  (Msg "repeating...")
+                  (Log))));
     }
 
     #[test]
@@ -184,7 +201,7 @@ mod dummy_block {
             );
         }
 
-        let v: ClonedVar = a.into();
+        let _v: ClonedVar = a.into();
 
         log("Hello chainblocks-rs");
     }
