@@ -47,6 +47,8 @@ macro_rules! var {
 }
 
 macro_rules! blocks {
+    (@block Set :Name ..$var:ident) => { blocks!(@block Set (stringify!($var))); };
+    (@block Set ..$var:ident) => { blocks!(@block Set (stringify!($var))); };
     (@block Set :Name .$var:ident) => { blocks!(@block Set (stringify!($var))); };
     (@block Set .$var:ident) => { blocks!(@block Set (stringify!($var))); };
 
@@ -216,7 +218,7 @@ mod dummy_block {
     fn macroTest() {
         blocks!((10)
                 (Log)
-                (Set :Name .x)
+                (Set :Name ..x)
                 (Repeat
                  (-->
                   (Msg "repeating...")

@@ -192,7 +192,7 @@ pub fn cloneVar(dst: &mut Var, src: &Var) {
 pub fn referenceMutVariable(context: &CBContext, name: CBString) -> &mut CBVar {
     unsafe {
         let ctx = context as *const CBContext as *mut CBContext;
-        let cbptr = Core.referenceVariable.unwrap()(ctx, name);
+        let cbptr = Core.referenceVariable.unwrap()(ctx, name, false);
         cbptr.as_mut().unwrap()
     }
 }
@@ -200,7 +200,7 @@ pub fn referenceMutVariable(context: &CBContext, name: CBString) -> &mut CBVar {
 pub fn referenceVariable(context: &CBContext, name: CBString) -> &CBVar {
     unsafe {
         let ctx = context as *const CBContext as *mut CBContext;
-        let cbptr = Core.referenceVariable.unwrap()(ctx, name);
+        let cbptr = Core.referenceVariable.unwrap()(ctx, name, false);
         cbptr.as_mut().unwrap()
     }
 }
