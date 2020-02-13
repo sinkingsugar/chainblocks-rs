@@ -373,7 +373,7 @@ impl From<CBString> for Var {
                 __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
                     __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: v,
-                        stackPosition: 0,
+                        stringCapacity: 0,
                     },
                 },
             },
@@ -391,7 +391,7 @@ impl From<&'static str> for Var {
                 __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
                     __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: v.as_ptr() as *const i8,
-                        stackPosition: 0,
+                        stringCapacity: 0,
                     },
                 },
             },
@@ -410,7 +410,7 @@ impl From<&CStr> for Var {
                 __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
                     __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: v.as_ptr(),
-                        stackPosition: 0,
+                        stringCapacity: 0,
                     },
                 },
             },
@@ -429,7 +429,7 @@ impl From<&CString> for Var {
                 __bindgen_anon_1: CBVarPayload__bindgen_ty_1 {
                     __bindgen_anon_2: CBVarPayload__bindgen_ty_1__bindgen_ty_2 {
                         stringValue: v.as_ptr(),
-                        stackPosition: 0,
+                        stringCapacity: 0,
                     },
                 },
             },
