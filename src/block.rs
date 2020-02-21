@@ -51,6 +51,7 @@ pub trait Block {
         Var::default()
     }
 
+    fn warmup(&mut self, _context: &Context) {}
     fn activate(&mut self, context: &Context, input: &Var) -> Var;
     fn cleanup(&mut self) {}
 }
@@ -105,6 +106,14 @@ unsafe extern "C" fn cblock_destroy<T: Block>(arg1: *mut CBlock) {
     (*blk).block.destroy();
     Box::from_raw(blk);
     drop(blk);
+}
+
+unsafe extern "C" fn cblock_warmup<T: Block>(
+    arg1: *mut CBlock,
+    arg2: *mut CBContext
+) {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    (*blk).block.warmup(&(*arg2));
 }
 
 unsafe extern "C" fn cblock_activate<T: Block>(
@@ -193,6 +202,7 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
             parameters: Some(cblock_parameters::<T>),
             setParam: Some(cblock_setParam::<T>),
             getParam: Some(cblock_getParam::<T>),
+            warmup: Some(cblock_warmup::<T>),
             activate: Some(cblock_activate::<T>),
             cleanup: Some(cblock_cleanup::<T>),
         },
