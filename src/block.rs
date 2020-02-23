@@ -15,6 +15,7 @@ use crate::types::Parameters;
 use crate::types::Type;
 use crate::types::Types;
 use crate::types::Var;
+use crate::types::Table;
 use std::ffi::CString;
 
 pub trait Block {
@@ -36,7 +37,7 @@ pub trait Block {
         None
     }
 
-    fn canCompose() -> bool {
+    fn hasCompose() -> bool {
         false
     }
     fn compose(&mut self, _data: &InstanceData) -> Type {
@@ -54,6 +55,11 @@ pub trait Block {
     fn warmup(&mut self, _context: &Context) {}
     fn activate(&mut self, context: &Context, input: &Var) -> Var;
     fn cleanup(&mut self) {}
+
+    fn hasMutate() -> bool {
+        false
+    }
+    fn mutate(&mut self, _options: Table) {}
 }
 
 #[repr(C)]
@@ -67,21 +73,21 @@ pub struct BlockWrapper<T: Block> {
 pub unsafe extern "C" fn cblock_construct<T: Default + Block>() -> *mut CBlock {
     let wrapper: Box<BlockWrapper<T>> = Box::new(create());
     let wptr = Box::into_raw(wrapper);
-    return wptr as *mut CBlock;
+    wptr as *mut CBlock
 }
 
 unsafe extern "C" fn cblock_name<T: Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
     let blk = arg1 as *mut BlockWrapper<T>;
     let name = (*blk).block.name();
     (*blk).name = Some(CString::new(name).expect("CString::new failed"));
-    return (*blk).name.as_ref().unwrap().as_ptr();
+    (*blk).name.as_ref().unwrap().as_ptr()
 }
 
 unsafe extern "C" fn cblock_help<T: Block>(arg1: *mut CBlock) -> *const ::std::os::raw::c_char {
     let blk = arg1 as *mut BlockWrapper<T>;
     let help = (*blk).block.help();
     (*blk).help = Some(CString::new(help).expect("CString::new failed"));
-    return (*blk).help.as_ref().unwrap().as_ptr();
+    (*blk).help.as_ref().unwrap().as_ptr()
 }
 
 unsafe extern "C" fn cblock_inputTypes<T: Block>(arg1: *mut CBlock) -> CBTypesInfo {
@@ -122,7 +128,15 @@ unsafe extern "C" fn cblock_activate<T: Block>(
     arg3: *const CBVar,
 ) -> CBVar {
     let blk = arg1 as *mut BlockWrapper<T>;
-    return (*blk).block.activate(&(*arg2), &(*arg3));
+    (*blk).block.activate(&(*arg2), &(*arg3))
+}
+
+unsafe extern "C" fn cblock_mutate<T: Block>(
+    arg1: *mut CBlock,
+    arg2: Table
+) {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    (*blk).block.mutate(arg2);
 }
 
 unsafe extern "C" fn cblock_cleanup<T: Block>(arg1: *mut CBlock) {
@@ -170,7 +184,7 @@ unsafe extern "C" fn cblock_getParam<T: Block>(
     arg2: ::std::os::raw::c_int,
 ) -> CBVar {
     let blk = arg1 as *mut BlockWrapper<T>;
-    return (*blk).block.getParam(arg2);
+    (*blk).block.getParam(arg2)
 }
 
 unsafe extern "C" fn cblock_setParam<T: Block>(
@@ -179,11 +193,11 @@ unsafe extern "C" fn cblock_setParam<T: Block>(
     arg3: CBVar,
 ) {
     let blk = arg1 as *mut BlockWrapper<T>;
-    return (*blk).block.setParam(arg2, &arg3);
+    (*blk).block.setParam(arg2, &arg3);
 }
 
 pub fn create<T: Default + Block>() -> BlockWrapper<T> {
-    return BlockWrapper::<T> {
+    BlockWrapper::<T> {
         header: CBlock {
             inlineBlockId: 0,
             name: Some(cblock_name::<T>),
@@ -194,7 +208,7 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
             destroy: Some(cblock_destroy::<T>),
             exposedVariables: Some(cblock_exposedVariables::<T>),
             requiredVariables: Some(cblock_requiredVariables::<T>),
-            compose: if T::canCompose() {
+            compose: if T::hasCompose() {
                 Some(cblock_compose::<T>)
             } else {
                 None
@@ -205,9 +219,14 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
             warmup: Some(cblock_warmup::<T>),
             activate: Some(cblock_activate::<T>),
             cleanup: Some(cblock_cleanup::<T>),
+            mutate: if T::hasMutate() {
+                Some(cblock_mutate::<T>)
+            } else {
+                None
+            },
         },
         block: T::default(),
         name: None,
         help: None,
-    };
+    }
 }

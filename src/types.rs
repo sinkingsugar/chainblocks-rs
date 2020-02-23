@@ -19,6 +19,7 @@ use crate::chainblocksc::CBType_Seq;
 use crate::chainblocksc::CBType_String;
 use crate::chainblocksc::CBTypesInfo;
 use crate::chainblocksc::CBVar;
+use crate::chainblocksc::CBTable;
 use crate::chainblocksc::CBVarPayload;
 use crate::chainblocksc::CBVarPayload__bindgen_ty_1;
 use crate::chainblocksc::CBVarPayload__bindgen_ty_1__bindgen_ty_2;
@@ -33,6 +34,7 @@ pub type Var = CBVar;
 pub type Type = CBTypeInfo;
 pub type String = CBString;
 pub type InstanceData = CBInstanceData;
+pub type Table = CBTable;
 
 /*
 CBTypeInfo & co
