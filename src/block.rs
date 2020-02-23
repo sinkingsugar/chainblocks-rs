@@ -200,6 +200,7 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
     BlockWrapper::<T> {
         header: CBlock {
             inlineBlockId: 0,
+            owned: false,
             name: Some(cblock_name::<T>),
             help: Some(cblock_help::<T>),
             inputTypes: Some(cblock_inputTypes::<T>),
