@@ -10,6 +10,7 @@ fn main() {
         .header("../chainblocks/include/chainblocks.h")
         .clang_arg("-I../chainblocks/deps/stb")
         .clang_arg("-DCB_NO_ANON")
+        .clang_arg("-DCB_USE_ENUMS")
         .derive_default(true)
         .generate()
         .expect("Unable to generate bindings");
