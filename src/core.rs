@@ -88,6 +88,7 @@ pub static mut Core: CBCore = CBCore {
     stringsSlowDelete: None,
     tableNew: None,
     validateChain: None,
+    validateSetParam: None,
     runChain: None,
     validateBlocks: None,
     runBlocks: None,
