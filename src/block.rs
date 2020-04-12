@@ -12,10 +12,10 @@ use crate::types::Context;
 use crate::types::ExposedTypes;
 use crate::types::InstanceData;
 use crate::types::Parameters;
+use crate::types::Table;
 use crate::types::Type;
 use crate::types::Types;
 use crate::types::Var;
-use crate::types::Table;
 use std::ffi::CString;
 
 pub trait Block {
@@ -114,10 +114,7 @@ unsafe extern "C" fn cblock_destroy<T: Block>(arg1: *mut CBlock) {
     drop(blk);
 }
 
-unsafe extern "C" fn cblock_warmup<T: Block>(
-    arg1: *mut CBlock,
-    arg2: *mut CBContext
-) {
+unsafe extern "C" fn cblock_warmup<T: Block>(arg1: *mut CBlock, arg2: *mut CBContext) {
     let blk = arg1 as *mut BlockWrapper<T>;
     (*blk).block.warmup(&(*arg2));
 }
@@ -131,10 +128,7 @@ unsafe extern "C" fn cblock_activate<T: Block>(
     (*blk).block.activate(&(*arg2), &(*arg3))
 }
 
-unsafe extern "C" fn cblock_mutate<T: Block>(
-    arg1: *mut CBlock,
-    arg2: Table
-) {
+unsafe extern "C" fn cblock_mutate<T: Block>(arg1: *mut CBlock, arg2: Table) {
     let blk = arg1 as *mut BlockWrapper<T>;
     (*blk).block.mutate(arg2);
 }
@@ -225,6 +219,10 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
             } else {
                 None
             },
+            crossover: None,
+            getState: None,
+            setState: None,
+            resetState: None
         },
         block: T::default(),
         name: None,
