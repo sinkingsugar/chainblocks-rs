@@ -87,7 +87,8 @@ impl ExposedInfo {
             help: chelp,
             isMutable: false,
             isTableEntry: false,
-            global: false
+            global: false,
+            scope: core::ptr::null_mut()
         };
         ExposedInfo(res)
     }
