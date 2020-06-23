@@ -14,12 +14,12 @@ cd chainblocks
 # cd ../../
 
 # snappy
-cd deps/snappy
-mkdir build
-cd build
-cmake -G Ninja ..
-ninja
-cd ../../../
+# cd deps/snappy
+# mkdir build
+# cd build
+# cmake -G Ninja ..
+# ninja
+# cd ../../../
 
 # # SDL
 # mkdir external
@@ -40,7 +40,7 @@ ninja cbl && ninja cb_shared
 ./cbl ../src/tests/network.clj
 ./cbl ../src/tests/struct.clj
 ./cbl ../src/tests/flows.clj
-./cbl ../src/tests/snappy.clj
+# ./cbl ../src/tests/snappy.clj
 ./cbl ../src/tests/stack.clj
 ./cbl ../src/tests/kdtree.clj
 
