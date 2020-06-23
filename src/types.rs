@@ -1,5 +1,7 @@
 use crate::chainblocksc::CBlockPtr;
 use crate::chainblocksc::CBlock;
+use crate::chainblocksc::CBChain;
+use crate::chainblocksc::CBValidationResult;
 use crate::chainblocksc::CBlocks;
 use crate::chainblocksc::CBContext;
 use crate::chainblocksc::CBExposedTypeInfo;
@@ -35,6 +37,8 @@ pub type Type = CBTypeInfo;
 pub type String = CBString;
 pub type InstanceData = CBInstanceData;
 pub type Table = CBTable;
+pub type Chain = CBChain;
+pub type ValidationResult = CBValidationResult;
 
 /*
 CBTypeInfo & co

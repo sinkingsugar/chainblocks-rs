@@ -8,6 +8,7 @@ use crate::chainblocksc::CBTypesInfo;
 use crate::chainblocksc::CBVar;
 use crate::chainblocksc::CBlock;
 use crate::core::Core;
+use crate::types::Chain;
 use crate::types::Context;
 use crate::types::ExposedTypes;
 use crate::types::InstanceData;
@@ -15,6 +16,7 @@ use crate::types::Parameters;
 use crate::types::Table;
 use crate::types::Type;
 use crate::types::Types;
+use crate::types::ValidationResult;
 use crate::types::Var;
 use std::ffi::CString;
 
@@ -44,6 +46,11 @@ pub trait Block {
         Type::default()
     }
 
+    fn hasComposed() -> bool {
+        false
+    }
+    fn composed(&mut self, _chain: &Chain, _results: &ValidationResult) {}
+
     fn parameters(&mut self) -> Option<&Parameters> {
         None
     }
@@ -60,6 +67,20 @@ pub trait Block {
         false
     }
     fn mutate(&mut self, _options: Table) {}
+
+    fn hasCrossover() -> bool {
+        false
+    }
+    fn crossover(&mut self, _state0: &Var, _state1: &Var) {}
+
+    fn hasState() -> bool {
+        false
+    }
+    fn getState(&mut self) -> Var {
+        Var::default()
+    }
+    fn setState(&mut self, _state: &Var) {}
+    fn resetState(&mut self) {}
 }
 
 #[repr(C)]
@@ -164,6 +185,15 @@ unsafe extern "C" fn cblock_compose<T: Block>(
     (*blk).block.compose(&data)
 }
 
+unsafe extern "C" fn cblock_composed<T: Block>(
+    arg1: *mut CBlock,
+    chain: *const Chain,
+    results: *const ValidationResult,
+) {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    (*blk).block.composed(&(*chain), &(*results));
+}
+
 unsafe extern "C" fn cblock_parameters<T: Block>(arg1: *mut CBlock) -> CBParametersInfo {
     let blk = arg1 as *mut BlockWrapper<T>;
     if let Some(params) = (*blk).block.parameters() {
@@ -190,6 +220,26 @@ unsafe extern "C" fn cblock_setParam<T: Block>(
     (*blk).block.setParam(arg2, &arg3);
 }
 
+unsafe extern "C" fn cblock_crossover<T: Block>(arg1: *mut CBlock, s0: Var, s1: Var) {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    (*blk).block.crossover(&s0, &s1);
+}
+
+unsafe extern "C" fn cblock_getState<T: Block>(arg1: *mut CBlock) -> Var {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    (*blk).block.getState()
+}
+
+unsafe extern "C" fn cblock_setState<T: Block>(arg1: *mut CBlock, state: Var) {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    (*blk).block.setState(&state);
+}
+
+unsafe extern "C" fn cblock_resetState<T: Block>(arg1: *mut CBlock) {
+    let blk = arg1 as *mut BlockWrapper<T>;
+    (*blk).block.resetState();
+}
+
 pub fn create<T: Default + Block>() -> BlockWrapper<T> {
     BlockWrapper::<T> {
         header: CBlock {
@@ -208,6 +258,11 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
             } else {
                 None
             },
+            composed: if T::hasComposed() {
+                Some(cblock_composed::<T>)
+            } else {
+                None
+            },
             parameters: Some(cblock_parameters::<T>),
             setParam: Some(cblock_setParam::<T>),
             getParam: Some(cblock_getParam::<T>),
@@ -219,10 +274,26 @@ pub fn create<T: Default + Block>() -> BlockWrapper<T> {
             } else {
                 None
             },
-            crossover: None,
-            getState: None,
-            setState: None,
-            resetState: None
+            crossover: if T::hasCrossover() {
+                Some(cblock_crossover::<T>)
+            } else {
+                None
+            },
+            getState: if T::hasState() {
+                Some(cblock_getState::<T>)
+            } else {
+                None
+            },
+            setState: if T::hasState() {
+                Some(cblock_setState::<T>)
+            } else {
+                None
+            },
+            resetState: if T::hasState() {
+                Some(cblock_resetState::<T>)
+            } else {
+                None
+            },
         },
         block: T::default(),
         name: None,
