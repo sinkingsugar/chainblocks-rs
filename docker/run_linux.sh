@@ -41,7 +41,6 @@ ninja cbl && ninja cb_shared
 ./cbl ../src/tests/struct.clj
 ./cbl ../src/tests/flows.clj
 # ./cbl ../src/tests/snappy.clj
-./cbl ../src/tests/stack.clj
 ./cbl ../src/tests/kdtree.clj
 
 mkdir -p ../../chainblocks-rs/target/debug
