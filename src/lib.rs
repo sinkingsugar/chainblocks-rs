@@ -141,7 +141,7 @@ mod cb_static {
 }
 
 // --features "dummy"
-// #[cfg(any(test, feature = "dummy"))]
+#[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
 

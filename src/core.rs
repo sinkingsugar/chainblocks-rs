@@ -24,6 +24,8 @@ fn try_load_dlls() -> Option<Library> {
         Some(lib)
     } else if let Ok(lib) = Library::open("libcb_shared.so") {
         Some(lib)
+    } else if let Ok(lib) = Library::open("libcb.dll") {
+        Some(lib)
     } else {
         None
     }
