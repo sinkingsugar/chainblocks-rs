@@ -1,3 +1,5 @@
+use std::os::raw::c_char;
+use crate::chainblocksc::CBBool;
 use crate::block::cblock_construct;
 use crate::block::Block;
 use crate::chainblocksc::chainblocksInterface;
@@ -30,6 +32,8 @@ fn try_load_dlls() -> Option<Library> {
         None
     }
 }
+
+pub static mut CBDLL: Option<Library> = None;
 
 pub static mut Core: CBCore = CBCore {
     registerBlock: None,
@@ -114,30 +118,28 @@ unsafe fn initInternal() {
     let exe = Library::open_self().ok().unwrap();
 
     let exefun = exe
-        .symbol::<unsafe extern "C" fn(abi_version: u32) -> CBCore>("chainblocksInterface")
+        .symbol::<unsafe extern "C" fn(abi_version: u32, pcore: *mut CBCore) -> CBBool>("chainblocksInterface")
         .ok();
     if exefun.is_some() {
         let fun = exefun.unwrap();
-        let core = fun(ABI_VERSION);
-        if core.registerBlock.is_none() {
+        let res = fun(ABI_VERSION, &mut Core);
+        if !res {
             panic!("Failed to aquire chainblocks interface, version not compatible.");
         }
-        Core = core;
-        log("chainblocks-rs attached!");
+        log("chainblocks-rs attached! (exe)");
     } else {
         let lib = try_load_dlls().unwrap();
         let fun = lib
-            .symbol::<unsafe extern "C" fn(abi_version: u32) -> CBCore>("chainblocksInterface")
+            .symbol::<unsafe extern "C" fn(abi_version: u32, pcore: *mut CBCore) -> CBBool>("chainblocksInterface")
             .unwrap();
-        let core = fun(ABI_VERSION);
-        if core.registerBlock.is_none() {
+        let res = fun(ABI_VERSION, &mut Core);
+        if !res {
             panic!("Failed to aquire chainblocks interface, version not compatible.");
         }
-        Core = core;
-        log("chainblocks-rs attached!");
-
-        init_done = true;
+        CBDLL = Some(lib);
+        log("chainblocks-rs attached! (dll)");
     }
+    init_done = true;
 }
 
 #[inline(always)]
@@ -165,10 +167,17 @@ pub fn sleep(seconds: f64) {
 }
 
 #[inline(always)]
-pub fn registerBlock<T: Default + Block>(name: &str) {
-    let blkname = CString::new(name).unwrap();
+pub fn suspend(context: &CBContext, seconds: f64) {
     unsafe {
-        Core.registerBlock.unwrap()(blkname.as_ptr(), Some(cblock_construct::<T>));
+        let ctx = context as *const CBContext as *mut CBContext;
+        Core.suspend.unwrap()(ctx, seconds);
+    }
+}
+
+#[inline(always)]
+pub fn registerBlock<T: Default + Block>() {
+    unsafe {
+        Core.registerBlock.unwrap()(T::registerName().as_ptr() as *const c_char , Some(cblock_construct::<T>));
     }
 }
 

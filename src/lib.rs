@@ -141,7 +141,7 @@ mod cb_static {
 }
 
 // --features "dummy"
-#[cfg(any(test, feature = "dummy"))]
+// #[cfg(any(test, feature = "dummy"))]
 mod dummy_block {
     // run with: RUST_BACKTRACE=1 cargo test -- --nocapture
 
@@ -160,11 +160,14 @@ mod dummy_block {
     use crate::core::createBlock;
     use crate::core::init;
     use crate::core::log;
+    use crate::core::registerBlock;
     use crate::core::sleep;
+    use crate::core::suspend;
     use crate::core::Core;
     use crate::types::common_type;
     use crate::types::ClonedVar;
     use crate::types::Var;
+    use std::ffi::CStr;
     use std::ffi::CString;
 
     struct DummyBlock {
@@ -187,32 +190,34 @@ mod dummy_block {
         fn name(&mut self) -> &str {
             "Dummy"
         }
+
         fn inputTypes(&mut self) -> &Types {
             &self.inputTypes
         }
+
         fn outputTypes(&mut self) -> &Types {
             &self.outputTypes
         }
-        fn activate(&mut self, _context: &CBContext, _input: &Var) -> Var {
+        fn activate(&mut self, context: &CBContext, _input: &Var) -> Var {
             log("Dummy - activate: Ok!");
             let mut x: String = "Before...".to_string();
             log(&x);
-            sleep(2.0);
+            suspend(context, 2.0);
             x.push_str(" - and After!");
             log(&x);
             log("Dummy - activate: Resumed!");
             return Var::default();
+        }
+
+        fn registerName() -> &'static str {
+            "Dummy\0"
         }
     }
 
     #[ctor]
     fn registerDummy() {
         init();
-
-        let blkname = CString::new("Dummy").expect("CString failed...");
-        unsafe {
-            Core.registerBlock.unwrap()(blkname.as_ptr(), Some(cblock_construct::<DummyBlock>));
-        }
+        registerBlock::<DummyBlock>();
     }
 
     fn macroTest() {

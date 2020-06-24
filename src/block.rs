@@ -1,3 +1,5 @@
+use std::os::raw::c_char;
+use std::ffi::CStr;
 use crate::chainblocksc::CBContext;
 use crate::chainblocksc::CBExposedTypesInfo;
 use crate::chainblocksc::CBInstanceData;
@@ -21,6 +23,8 @@ use crate::types::Var;
 use std::ffi::CString;
 
 pub trait Block {
+    fn registerName() -> &'static str;
+
     fn name(&mut self) -> &str;
     fn help(&mut self) -> &str {
         ""
