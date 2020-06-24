@@ -49,4 +49,4 @@ cp libcb_shared.so ../../chainblocks-rs/target/debug/
 cd ../../chainblocks-rs/
 
 cargo test
-cargo test --features "blocks"
+# cargo test --features "blocks"
